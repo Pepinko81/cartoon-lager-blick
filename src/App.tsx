@@ -5,9 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { LoginPage } from "@/components/auth/LoginPage";
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,13 +15,13 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/auth" element={<Auth />} />
+              <Route path="/login" element={<LoginPage />} />
               <Route
                 path="/"
                 element={
@@ -34,8 +34,8 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

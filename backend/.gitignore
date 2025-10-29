@@ -1,0 +1,15 @@
+# Backend-Datenbank
+backend/lager.db
+backend/lager.db-journal
+backend/lager.db-shm
+backend/lager.db-wal
+
+# Backend-Bilder
+backend/bilder/
+
+# Backups
+backend/backups/
+
+# Node modules
+backend/node_modules/
+

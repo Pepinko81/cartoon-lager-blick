@@ -74,28 +74,31 @@ export const SlotModal = ({
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 text-foreground">Bilder</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-                {slot.images.map((image, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="relative group"
-                  >
-                    <img
-                      src={image}
-                      alt={`${slot.name} - ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border-2 border-border"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => onImageDelete(slot.id, image)}
+                {slot.images.map((image, index) => {
+                  const imageUrl = typeof image === "string" ? image : image.url;
+                  return (
+                    <motion.div
+                      key={typeof image === "string" ? index : image.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="relative group"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </motion.div>
-                ))}
+                      <img
+                        src={imageUrl}
+                        alt={`${slot.name} - ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border-2 border-border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => onImageDelete(slot.id, imageUrl)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </motion.div>
+                  );
+                })}
               </div>
 
               <label className="block">

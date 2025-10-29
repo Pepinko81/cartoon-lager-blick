@@ -1,0 +1,25 @@
+{
+  "name": "lager-backend",
+  "version": "1.0.0",
+  "description": "Lokales Backend für Lagerverwaltungssystem",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "backup": "node scripts/backup.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.2.2",
+    "multer": "^1.4.5-lts.1",
+    "cors": "^2.8.5",
+    "archiver": "^7.0.1",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+

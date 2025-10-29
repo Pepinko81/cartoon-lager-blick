@@ -1,72 +1,80 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+
+interface Benutzer {
+  id: string;
+  email: string;
+}
 
 interface AuthContextType {
   token: string | null;
+  benutzer: Benutzer | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  login: (token: string) => void;
   logout: () => void;
+  getAuthHeader: () => HeadersInit;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const TOKEN_KEY = "lager_token";
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
+  const [benutzer, setBenutzer] = useState<Benutzer | null>(null);
 
+  // Token aus localStorage laden beim Start
   useEffect(() => {
-    const storedToken = localStorage.getItem('auth_token');
-    if (storedToken) {
-      setToken(storedToken);
+    const savedToken = localStorage.getItem(TOKEN_KEY);
+    if (savedToken) {
+      setToken(savedToken);
+      // Benutzer-Info aus Token extrahieren (decode JWT)
+      try {
+        const payload = JSON.parse(atob(savedToken.split(".")[1]));
+        setBenutzer({ id: payload.id.toString(), email: payload.email });
+      } catch (error) {
+        // Token ungültig, löschen
+        localStorage.removeItem(TOKEN_KEY);
+        setToken(null);
+      }
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch('http://localhost:5000/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Anmeldung fehlgeschlagen');
+  const login = (newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem(TOKEN_KEY, newToken);
+    // Benutzer-Info aus Token extrahieren
+    try {
+      const payload = JSON.parse(atob(newToken.split(".")[1]));
+      setBenutzer({ id: payload.id.toString(), email: payload.email });
+    } catch (error) {
+      console.error("Fehler beim Decodieren des Tokens:", error);
     }
-
-    const data = await response.json();
-    localStorage.setItem('auth_token', data.token);
-    setToken(data.token);
-  };
-
-  const register = async (email: string, password: string) => {
-    const response = await fetch('http://localhost:5000/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Registrierung fehlgeschlagen');
-    }
-
-    const data = await response.json();
-    localStorage.setItem('auth_token', data.token);
-    setToken(data.token);
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_token');
     setToken(null);
+    setBenutzer(null);
+    localStorage.removeItem(TOKEN_KEY);
+  };
+
+  const getAuthHeader = (): HeadersInit => {
+    if (token) {
+      return {
+        Authorization: `Bearer ${token}`,
+      };
+    }
+    return {};
   };
 
   return (
     <AuthContext.Provider
       value={{
         token,
+        benutzer,
         isAuthenticated: !!token,
         login,
-        register,
         logout,
+        getAuthHeader,
       }}
     >
       {children}
@@ -76,8 +84,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth muss innerhalb von AuthProvider verwendet werden');
+  if (context === undefined) {
+    throw new Error("useAuth muss innerhalb eines AuthProvider verwendet werden");
   }
   return context;
 };

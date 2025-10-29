@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Warehouse as WarehouseIcon, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Rack as RackType, Slot as SlotType, AddRackData } from "@/types/warehouse";
@@ -9,17 +8,27 @@ import { Rack } from "./Rack";
 import { SlotModal } from "./SlotModal";
 import { AddRackModal } from "./AddRackModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const API_BASE = "http://localhost:5000/api";
 
 export const WarehouseView = () => {
-  const navigate = useNavigate();
-  const { token, logout } = useAuth();
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isAddRackModalOpen, setIsAddRackModalOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { getAuthHeader, benutzer, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch racks
   const { data: racks = [], isLoading } = useQuery<RackType[]>({
@@ -27,10 +36,16 @@ export const WarehouseView = () => {
     queryFn: async () => {
       const response = await fetch(`${API_BASE}/regale`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          ...getAuthHeader(),
         },
       });
-      if (!response.ok) throw new Error("Fehler beim Laden der Regale");
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Laden der Regale");
+      }
       return response.json();
     },
   });
@@ -40,13 +55,19 @@ export const WarehouseView = () => {
     mutationFn: async (data: AddRackData) => {
       const response = await fetch(`${API_BASE}/regal`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          ...getAuthHeader(),
         },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Fehler beim Hinzufügen des Regals");
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Hinzufügen des Regals");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -74,15 +95,21 @@ export const WarehouseView = () => {
       slotId: string;
       description: string;
     }) => {
-      const response = await fetch(`${API_BASE}/slot/${slotId}`, {
+      const response = await fetch(`${API_BASE}/fach/${slotId}`, {
         method: "PUT",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          ...getAuthHeader(),
         },
         body: JSON.stringify({ description }),
       });
-      if (!response.ok) throw new Error("Fehler beim Aktualisieren des Fachs");
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Aktualisieren des Fachs");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -95,14 +122,18 @@ export const WarehouseView = () => {
     mutationFn: async ({ slotId, file }: { slotId: string; file: File }) => {
       const formData = new FormData();
       formData.append("bild", file);
-      const response = await fetch(`${API_BASE}/slot/${slotId}/bild`, {
+      const response = await fetch(`${API_BASE}/fach/${slotId}/bild`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: getAuthHeader(),
         body: formData,
       });
-      if (!response.ok) throw new Error("Fehler beim Hochladen des Bildes");
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Hochladen des Bildes");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -134,11 +165,89 @@ export const WarehouseView = () => {
   };
 
   const handleImageDelete = async (slotId: string, imageUrl: string) => {
-    // Implement delete logic
-    toast({
-      title: "Info",
-      description: "Löschen von Bildern wird implementiert",
-    });
+    try {
+      // Finde die Bild-ID aus den geladenen Daten
+      const slot = racks
+        .flatMap((rack) => rack.slots)
+        .find((s) => s.id === slotId);
+
+      if (!slot) {
+        toast({
+          title: "Fehler",
+          description: "Fach nicht gefunden",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Prüfe ob images ein Array von Objekten mit id ist
+      let bildId: string | null = null;
+      
+      if (slot.images.length > 0 && typeof slot.images[0] === "object" && "id" in slot.images[0]) {
+        // Images sind Objekte mit id und url
+        const imageObj = (slot.images as Array<{ id: string; url: string }>).find(
+          (img) => img.url === imageUrl
+        );
+        bildId = imageObj?.id || null;
+      } else {
+        // Fallback: Images sind Strings, suche nach Dateinamen
+        const fileName = imageUrl.split("/").pop();
+        // Finde Bild-ID über Backend-Endpunkt nach Dateinamen
+        const response = await fetch(`${API_BASE}/regale`, {
+          headers: getAuthHeader(),
+        });
+        if (!response.ok) throw new Error("Fehler beim Laden der Regale");
+        const allRacks = await response.json();
+        
+        for (const rack of allRacks) {
+          for (const s of rack.slots) {
+            if (s.id === slotId && Array.isArray(s.images)) {
+              for (const img of s.images) {
+                if (typeof img === "object" && "url" in img && img.url === imageUrl) {
+                  bildId = img.id;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (!bildId) {
+        toast({
+          title: "Fehler",
+          description: "Bild-ID nicht gefunden",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Lösche das Bild
+      const deleteResponse = await fetch(`${API_BASE}/bild/${bildId}`, {
+        method: "DELETE",
+        headers: getAuthHeader(),
+      });
+
+      if (!deleteResponse.ok) {
+        if (deleteResponse.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Löschen des Bildes");
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["racks"] });
+      toast({
+        title: "Erfolgreich",
+        description: "Bild wurde gelöscht",
+      });
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Bild konnte nicht gelöscht werden",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -173,20 +282,35 @@ export const WarehouseView = () => {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar>
+                      <AvatarFallback>
+                        {benutzer?.email.charAt(0).toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>
+                    {benutzer?.email || "Benutzer"}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      logout();
+                      navigate("/login");
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Abmelden
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={() => setIsAddRackModalOpen(true)} size="lg">
                 <Plus className="w-5 h-5 mr-2" />
                 Neues Regal
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={() => {
-                  logout();
-                  navigate("/auth");
-                }}
-              >
-                <LogOut className="w-5 h-5 mr-2" />
-                Abmelden
               </Button>
             </div>
           </div>

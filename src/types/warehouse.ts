@@ -2,7 +2,7 @@ export interface Slot {
   id: string;
   name: string;
   description?: string;
-  images: string[];
+  images: string[] | Array<{ id: string; url: string }>;
   rackId: string;
 }
 
