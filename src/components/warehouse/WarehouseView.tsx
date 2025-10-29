@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "http://lager.local:5000/api";
 
 export const WarehouseView = () => {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);

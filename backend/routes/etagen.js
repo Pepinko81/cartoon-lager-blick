@@ -40,7 +40,7 @@ router.get("/:id", authenticateToken, (req, res) => {
         beschreibung: fach.beschreibung || undefined,
         bilder: bilder.map((bild) => ({
           id: bild.id.toString(),
-          url: `http://localhost:5000/bilder/${bild.dateipfad.split("/").pop()}`,
+          url: `http://lager.local:5000/bilder/${bild.dateipfad.split("/").pop()}`,
         })),
       };
     });
