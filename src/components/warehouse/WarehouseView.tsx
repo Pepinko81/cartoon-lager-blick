@@ -7,6 +7,7 @@ import { Rack as RackType, Slot as SlotType, AddRackData } from "@/types/warehou
 import { Rack } from "./Rack";
 import { SlotModal } from "./SlotModal";
 import { AddRackModal } from "./AddRackModal";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 
 const API_BASE = "http://localhost:5000/api";
@@ -153,10 +154,13 @@ export const WarehouseView = () => {
                 Lagerverwaltung
               </h1>
             </div>
-            <Button onClick={() => setIsAddRackModalOpen(true)} size="lg">
-              <Plus className="w-5 h-5 mr-2" />
-              Neues Regal
-            </Button>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <Button onClick={() => setIsAddRackModalOpen(true)} size="lg">
+                <Plus className="w-5 h-5 mr-2" />
+                Neues Regal
+              </Button>
+            </div>
           </div>
         </div>
       </header>
