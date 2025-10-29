@@ -15,13 +15,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 5000;
 
-// CORS nur für localhost erlauben
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080", "http://127.0.0.1:5173", "http://127.0.0.1:8080"],
-    credentials: true,
-  })
-);
+        // CORS nur für lager.local erlauben
+        app.use(
+          cors({
+            origin: ["http://lager.local:3000", "http://lager.local:5173", "http://lager.local:8080"],
+            credentials: true,
+          })
+        );
 
 // Body-Parser für JSON
 app.use(express.json());
@@ -71,12 +71,12 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Server starten
-app.listen(PORT, () => {
-  console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
-  console.log(`📦 Datenbank: ${path.join(__dirname, "lager.db")}`);
-  console.log(`🖼️  Bilder-Verzeichnis: ${bilderDir}`);
-});
+        // Server starten
+        app.listen(PORT, () => {
+          console.log(`🚀 Server läuft auf http://lager.local:${PORT}`);
+          console.log(`📦 Datenbank: ${path.join(__dirname, "lager.db")}`);
+          console.log(`🖼️  Bilder-Verzeichnis: ${bilderDir}`);
+        });
 
 // Graceful Shutdown
 process.on("SIGINT", () => {
