@@ -33,7 +33,7 @@ export const WarehouseView = () => {
   const navigate = useNavigate();
 
   // Fetch racks
-  const { data: racks = [], isLoading } = useQuery<RackType[]>({
+  const { data: racks = [], isLoading, refetch } = useQuery<RackType[]>({
     queryKey: ["racks"],
     queryFn: async () => {
       const response = await fetch(`${API_BASE}/regale`, {
@@ -281,8 +281,9 @@ export const WarehouseView = () => {
   });
 
   const selectedSlot = racks
-    .flatMap((rack) => rack.slots)
-    .find((slot) => slot.id === selectedSlotId);
+    .flatMap((rack) => rack.etagen)
+    .flatMap((etage) => etage.faecher)
+    .find((fach) => fach.id === selectedSlotId);
 
   const handleSlotUpdate = (slotId: string, name?: string, description?: string) => {
     updateSlotMutation.mutate({ slotId, name, description });
@@ -314,8 +315,9 @@ export const WarehouseView = () => {
     try {
       // Finde die Bild-ID aus den geladenen Daten
       const slot = racks
-        .flatMap((rack) => rack.slots)
-        .find((s) => s.id === slotId);
+        .flatMap((rack) => rack.etagen)
+        .flatMap((etage) => etage.faecher)
+        .find((fach) => fach.id === slotId);
 
       if (!slot) {
         toast({
@@ -346,12 +348,14 @@ export const WarehouseView = () => {
         const allRacks = await response.json();
         
         for (const rack of allRacks) {
-          for (const s of rack.slots) {
-            if (s.id === slotId && Array.isArray(s.images)) {
-              for (const img of s.images) {
-                if (typeof img === "object" && "url" in img && img.url === imageUrl) {
-                  bildId = img.id;
-                  break;
+          for (const etage of rack.etagen) {
+            for (const fach of etage.faecher) {
+              if (fach.id === slotId && Array.isArray(fach.bilder)) {
+                for (const img of fach.bilder) {
+                  if (typeof img === "object" && "url" in img && img.url === imageUrl) {
+                    bildId = img.id;
+                    break;
+                  }
                 }
               }
             }
@@ -491,6 +495,7 @@ export const WarehouseView = () => {
                 rack={rack}
                 onSlotClick={(slotId) => setSelectedSlotId(slotId)}
                 onEdit={handleRackEdit}
+                onEtagenChange={() => refetch()}
               />
             ))}
           </div>

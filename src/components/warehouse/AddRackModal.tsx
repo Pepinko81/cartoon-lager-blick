@@ -17,7 +17,8 @@ interface AddRackModalProps {
 export const AddRackModal = ({ isOpen, onClose, onAdd }: AddRackModalProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [slotCount, setSlotCount] = useState(12);
+  const [anzahlEtagen, setAnzahlEtagen] = useState(1);
+  const [slotCount, setSlotCount] = useState(3);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +32,11 @@ export const AddRackModal = ({ isOpen, onClose, onAdd }: AddRackModalProps) => {
       return;
     }
 
-    onAdd({ name, description, slotCount });
+    onAdd({ name, description, anzahl_etagen: anzahlEtagen, slotCount });
     setName("");
     setDescription("");
-    setSlotCount(12);
+    setAnzahlEtagen(1);
+    setSlotCount(3);
     onClose();
   };
 
@@ -89,17 +91,32 @@ export const AddRackModal = ({ isOpen, onClose, onAdd }: AddRackModalProps) => {
             </div>
 
             <div>
-              <Label htmlFor="slot-count">Anzahl der Fächer</Label>
+              <Label htmlFor="anzahl-etagen">Anzahl der Etagen</Label>
+              <Input
+                id="anzahl-etagen"
+                type="number"
+                min="1"
+                max="10"
+                value={anzahlEtagen}
+                onChange={(e) => setAnzahlEtagen(parseInt(e.target.value) || 1)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Etagen werden automatisch nummeriert (Etage 1, Etage 2, ...)
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="slot-count">Fächer pro Etage</Label>
               <Input
                 id="slot-count"
                 type="number"
                 min="1"
-                max="100"
+                max="50"
                 value={slotCount}
                 onChange={(e) => setSlotCount(parseInt(e.target.value) || 1)}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Fächer werden automatisch nummeriert (F1, F2, ...)
+                Fächer werden automatisch nummeriert (E1-F1, E1-F2, ...)
               </p>
             </div>
 

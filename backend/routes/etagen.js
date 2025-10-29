@@ -4,6 +4,108 @@ import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// POST /api/etage - Neue Etage erstellen
+router.post("/", authenticateToken, express.json(), (req, res) => {
+  try {
+    const { regal_id, nummer, name } = req.body;
+
+    if (!regal_id || !nummer) {
+      return res.status(400).json({
+        nachricht: "Regal-ID und Etagen-Nummer sind erforderlich",
+        fehler: true,
+      });
+    }
+
+    // Prüfen ob Regal existiert
+    const regal = db.prepare("SELECT id FROM regale WHERE id = ?").get(regal_id);
+    if (!regal) {
+      return res.status(404).json({
+        nachricht: "Regal nicht gefunden",
+        fehler: true,
+      });
+    }
+
+    // Prüfen ob Etagen-Nummer bereits existiert
+    const existingEtage = db
+      .prepare("SELECT id FROM etagen WHERE regal_id = ? AND nummer = ?")
+      .get(regal_id, nummer);
+    if (existingEtage) {
+      return res.status(400).json({
+        nachricht: `Etage mit Nummer ${nummer} existiert bereits in diesem Regal`,
+        fehler: true,
+      });
+    }
+
+    // Etage erstellen
+    const stmt = db.prepare(
+      "INSERT INTO etagen (regal_id, nummer, name) VALUES (?, ?, ?)"
+    );
+    const result = stmt.run(regal_id, nummer, name?.trim() || null);
+
+    res.status(201).json({
+      nachricht: "Etage erfolgreich erstellt",
+      daten: {
+        id: result.lastInsertRowid.toString(),
+        regal_id: regal_id.toString(),
+        nummer: nummer,
+        name: name?.trim() || null,
+      },
+    });
+  } catch (error) {
+    console.error("Fehler beim Erstellen der Etage:", error);
+    res.status(500).json({
+      nachricht: "Fehler beim Erstellen der Etage",
+      fehler: true,
+    });
+  }
+});
+
+// POST /api/etage/:id/fach - Neues Fach in Etage erstellen
+router.post("/:id/fach", authenticateToken, express.json(), (req, res) => {
+  try {
+    const etageId = parseInt(req.params.id);
+    const { bezeichnung, beschreibung } = req.body;
+
+    if (!bezeichnung?.trim()) {
+      return res.status(400).json({
+        nachricht: "Fach-Bezeichnung ist erforderlich",
+        fehler: true,
+      });
+    }
+
+    // Prüfen ob Etage existiert
+    const etage = db.prepare("SELECT id, regal_id FROM etagen WHERE id = ?").get(etageId);
+    if (!etage) {
+      return res.status(404).json({
+        nachricht: "Etage nicht gefunden",
+        fehler: true,
+      });
+    }
+
+    // Fach erstellen
+    const stmt = db.prepare(
+      "INSERT INTO faecher (etage_id, bezeichnung, beschreibung) VALUES (?, ?, ?)"
+    );
+    const result = stmt.run(etageId, bezeichnung.trim(), beschreibung?.trim() || null);
+
+    res.status(201).json({
+      nachricht: "Fach erfolgreich erstellt",
+      daten: {
+        id: result.lastInsertRowid.toString(),
+        etage_id: etageId.toString(),
+        bezeichnung: bezeichnung.trim(),
+        beschreibung: beschreibung?.trim() || null,
+      },
+    });
+  } catch (error) {
+    console.error("Fehler beim Erstellen des Faches:", error);
+    res.status(500).json({
+      nachricht: "Fehler beim Erstellen des Faches",
+      fehler: true,
+    });
+  }
+});
+
 // GET /api/etage/:id - Einzelne Etage mit Fächern laden
 router.get("/:id", authenticateToken, (req, res) => {
   try {

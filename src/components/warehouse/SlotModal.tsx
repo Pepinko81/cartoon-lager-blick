@@ -116,7 +116,7 @@ export const SlotModal = ({
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 text-foreground">Bilder</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-                {slot.images.map((image, index) => {
+                {(slot.images || []).map((image, index) => {
                   const imageUrl = typeof image === "string" ? image : image.url;
                   return (
                     <motion.div

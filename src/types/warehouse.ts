@@ -1,3 +1,25 @@
+export interface Fach {
+  id: string;
+  bezeichnung: string;
+  beschreibung?: string;
+  bilder: Array<{ id: string; url: string }>;
+}
+
+export interface Etage {
+  id: string;
+  nummer: number;
+  name?: string;
+  faecher: Fach[];
+}
+
+export interface Rack {
+  id: string;
+  name: string;
+  description?: string;
+  etagen: Etage[];
+}
+
+// Legacy interface for backward compatibility
 export interface Slot {
   id: string;
   name: string;
@@ -6,15 +28,9 @@ export interface Slot {
   rackId: string;
 }
 
-export interface Rack {
-  id: string;
-  name: string;
-  description?: string;
-  slots: Slot[];
-}
-
 export interface AddRackData {
   name: string;
   description?: string;
-  slotCount: number;
+  anzahl_etagen?: number;
+  slotCount?: number;
 }
