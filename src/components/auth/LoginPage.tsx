@@ -35,13 +35,20 @@ export const LoginPage = () => {
     setLoading(true);
 
     try {
+      console.log('🔐 Attempting login to:', `${API_BASE}/login`);
+      console.log('📧 Email:', email);
+      
       const response = await fetch(`${API_BASE}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, passwort }),
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
       const data = await response.json();
+      console.log('📦 Response data:', data);
 
       if (!response.ok) {
         setFehler(data.nachricht || "Anmeldung fehlgeschlagen");
@@ -52,7 +59,15 @@ export const LoginPage = () => {
       login(data.token);
       navigate("/");
     } catch (error) {
-      setFehler("Verbindungsfehler. Bitte versuchen Sie es erneut.");
+      console.error('❌ Login error:', error);
+      console.error('❌ Error type:', error.constructor.name);
+      console.error('❌ Error message:', error.message);
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setFehler(`Verbindungsfehler: ${error.message}. Prüfen Sie die Netzwerkverbindung.`);
+      } else {
+        setFehler(`Verbindungsfehler: ${error.message}`);
+      }
       setLoading(false);
     }
   };
@@ -74,13 +89,18 @@ export const LoginPage = () => {
     setLoading(true);
 
     try {
+      console.log('📝 Attempting register to:', `${API_BASE}/register`);
+      console.log('📧 Email:', email);
+      
       const response = await fetch(`${API_BASE}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, passwort }),
       });
 
+      console.log('📡 Register response status:', response.status);
       const data = await response.json();
+      console.log('📦 Register response data:', data);
 
       if (!response.ok) {
         setFehler(data.nachricht || "Registrierung fehlgeschlagen");
@@ -95,7 +115,15 @@ export const LoginPage = () => {
       setPasswortWiederholen("");
       setLoading(false);
     } catch (error) {
-      setFehler("Verbindungsfehler. Bitte versuchen Sie es erneut.");
+      console.error('❌ Register error:', error);
+      console.error('❌ Error type:', error.constructor.name);
+      console.error('❌ Error message:', error.message);
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setFehler(`Verbindungsfehler: ${error.message}. Prüfen Sie die Netzwerkverbindung.`);
+      } else {
+        setFehler(`Verbindungsfehler: ${error.message}`);
+      }
       setLoading(false);
     }
   };

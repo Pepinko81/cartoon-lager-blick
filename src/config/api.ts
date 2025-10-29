@@ -33,4 +33,12 @@ export const API_BASE = getApiBaseUrl();
 if (typeof window !== 'undefined') {
   console.log('🌐 API Base URL:', API_BASE);
   console.log('📍 Current hostname:', window.location.hostname);
+  console.log('📍 Current port:', window.location.port);
+  console.log('📍 Full URL:', window.location.href);
+  
+  // Тест на API свързаност
+  fetch(`${API_BASE.replace('/api', '')}/api/health`)
+    .then(response => response.json())
+    .then(data => console.log('✅ API Health Check:', data))
+    .catch(error => console.error('❌ API Health Check Failed:', error));
 }
