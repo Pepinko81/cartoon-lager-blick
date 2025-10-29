@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["lager.local", "localhost", "127.0.0.1"],
   },
   plugins: [
     react(),
@@ -39,7 +40,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
-            urlPattern: /^http:\/\/localhost:5000\/api\/.*/i,
+            urlPattern: /^http:\/\/lager\.local:5000\/api\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
