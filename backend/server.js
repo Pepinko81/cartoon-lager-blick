@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import db from "./database.js";
 import regaleRoutes from "./routes/regale.js";
+import etagenRoutes from "./routes/etagen.js";
 import faecherRoutes from "./routes/faecher.js";
 import bilderRoutes from "./routes/bilder.js";
 import authRoutes from "./routes/auth.js";
@@ -36,6 +37,7 @@ app.use("/api", authRoutes);
 // Geschützte API-Routen
 app.use("/api/regale", regaleRoutes); // GET /api/regale
 app.use("/api/regal", regaleRoutes); // POST /api/regal, PUT /api/regal/:id, DELETE /api/regal/:id
+app.use("/api/etage", etagenRoutes); // GET /api/etage/:id, POST /api/etage/:id/fach, PUT /api/etage/:id, DELETE /api/etage/:id
 app.use("/api/fach", faecherRoutes); // PUT /api/fach/:id, DELETE /api/fach/:id
 app.use("/api/fach", bilderRoutes); // POST /api/fach/:id/bild
 app.use("/api/bild", bilderRoutes); // DELETE /api/bild/:id

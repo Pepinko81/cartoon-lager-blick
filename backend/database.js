@@ -21,12 +21,21 @@ db.exec(`
     beschreibung TEXT
   );
 
-  CREATE TABLE IF NOT EXISTS faecher (
+  CREATE TABLE IF NOT EXISTS etagen (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     regal_id INTEGER NOT NULL,
+    nummer INTEGER NOT NULL,
+    name TEXT,
+    FOREIGN KEY (regal_id) REFERENCES regale(id) ON DELETE CASCADE,
+    UNIQUE(regal_id, nummer)
+  );
+
+  CREATE TABLE IF NOT EXISTS faecher (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    etage_id INTEGER NOT NULL,
     bezeichnung TEXT NOT NULL,
     beschreibung TEXT,
-    FOREIGN KEY (regal_id) REFERENCES regale(id) ON DELETE CASCADE
+    FOREIGN KEY (etage_id) REFERENCES etagen(id) ON DELETE CASCADE
   );
 
   CREATE TABLE IF NOT EXISTS bilder (
@@ -45,9 +54,77 @@ db.exec(`
   );
 `);
 
+// Migration: Prüfe ob alte Struktur existiert (faecher.regal_id vorhanden)
+try {
+  const tableInfo = db.pragma("table_info(faecher)");
+  const hasRegalId = tableInfo.some((col) => col.name === "regal_id");
+  const hasEtageId = tableInfo.some((col) => col.name === "etage_id");
+
+  if (hasRegalId && !hasEtageId) {
+    console.log("🔄 Starte Datenbank-Migration: Regal → Etage → Fach");
+
+    // Temporäre Tabelle für Fächer mit regal_id erstellen
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS faecher_temp (
+        id INTEGER PRIMARY KEY,
+        regal_id INTEGER NOT NULL,
+        bezeichnung TEXT NOT NULL,
+        beschreibung TEXT
+      );
+      
+      INSERT INTO faecher_temp SELECT id, regal_id, bezeichnung, beschreibung FROM faecher;
+      
+      DROP TABLE faecher;
+      
+      CREATE TABLE faecher (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        etage_id INTEGER NOT NULL,
+        bezeichnung TEXT NOT NULL,
+        beschreibung TEXT,
+        FOREIGN KEY (etage_id) REFERENCES etagen(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Für jedes Regal: Etage erstellen und Fächer migrieren
+    const regale = db.prepare("SELECT id FROM regale").all();
+    const insertEtage = db.prepare(
+      "INSERT INTO etagen (regal_id, nummer, name) VALUES (?, ?, ?)"
+    );
+    const insertFach = db.prepare(
+      "INSERT INTO faecher (id, etage_id, bezeichnung, beschreibung) VALUES (?, ?, ?, ?)"
+    );
+
+    for (const regal of regale) {
+      // Etage "Etage 1" erstellen
+      const etageResult = insertEtage.run(regal.id, 1, "Etage 1");
+      const etageId = etageResult.lastInsertRowid;
+
+      // Alle Fächer dieses Regals migrieren
+      const faecher = db
+        .prepare("SELECT id, bezeichnung, beschreibung FROM faecher_temp WHERE regal_id = ?")
+        .all(regal.id);
+
+      for (const fach of faecher) {
+        insertFach.run(fach.id, etageId, fach.bezeichnung, fach.beschreibung || null);
+      }
+
+      console.log(
+        `✅ Regal ${regal.id}: Etage 1 erstellt, ${faecher.length} Fächer migriert`
+      );
+    }
+
+    // Temporäre Tabelle löschen
+    db.exec("DROP TABLE IF EXISTS faecher_temp");
+    console.log("✅ Datenbank-Migration abgeschlossen");
+  }
+} catch (error) {
+  console.error("⚠️ Migrationsfehler (kann ignoriert werden wenn Schema bereits aktuell):", error.message);
+}
+
 // Index für bessere Performance
 db.exec(`
-  CREATE INDEX IF NOT EXISTS idx_faecher_regal_id ON faecher(regal_id);
+  CREATE INDEX IF NOT EXISTS idx_faecher_etage_id ON faecher(etage_id);
+  CREATE INDEX IF NOT EXISTS idx_etagen_regal_id ON etagen(regal_id);
   CREATE INDEX IF NOT EXISTS idx_bilder_fach_id ON bilder(fach_id);
   CREATE INDEX IF NOT EXISTS idx_benutzer_email ON benutzer(email);
 `);
@@ -62,6 +139,32 @@ if (benutzerAnzahl.anzahl === 0) {
     testPasswortHash
   );
   console.log("✅ Testbenutzer erstellt: test@lager.de / 123456");
+}
+
+// Beispiel-Daten erstellen, falls keine Regale existieren
+const regaleAnzahl = db.prepare("SELECT COUNT(*) as anzahl FROM regale").get();
+if (regaleAnzahl.anzahl === 0) {
+  console.log("📦 Erstelle Beispiel-Daten...");
+  
+  const insertRegal = db.prepare("INSERT INTO regale (name, beschreibung) VALUES (?, ?)");
+  const insertEtage = db.prepare("INSERT INTO etagen (regal_id, nummer, name) VALUES (?, ?, ?)");
+  const insertFach = db.prepare("INSERT INTO faecher (etage_id, bezeichnung) VALUES (?, ?)");
+
+  const regalResult = insertRegal.run("Test Regal", "Beispiel-Regal mit 3 Etagen");
+  const regalId = regalResult.lastInsertRowid;
+
+  // 3 Etagen erstellen
+  for (let e = 1; e <= 3; e++) {
+    const etageResult = insertEtage.run(regalId, e, `Etage ${e}`);
+    const etageId = etageResult.lastInsertRowid;
+
+    // 3 Fächer pro Etage
+    for (let f = 1; f <= 3; f++) {
+      insertFach.run(etageId, `E${e}-F${f}`);
+    }
+  }
+
+  console.log("✅ Beispiel-Daten erstellt: 1 Regal, 3 Etagen, 9 Fächer");
 }
 
 // Bilder-Verzeichnis erstellen, falls es nicht existiert

@@ -4,7 +4,7 @@ import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// GET /api/regale - Alle Regale mit Fächern und Bildern laden
+// GET /api/regale - Alle Regale mit Etagen, Fächern und Bildern laden
 router.get("/", authenticateToken, (req, res) => {
   try {
     // Alle Regale laden
@@ -12,30 +12,46 @@ router.get("/", authenticateToken, (req, res) => {
       .prepare("SELECT id, name, beschreibung FROM regale ORDER BY id")
       .all();
 
-    // Für jedes Regal die Fächer laden
-    const regaleMitFaechern = regale.map((regal) => {
-      // Fächer für dieses Regal laden
-      const faecher = db
+    // Für jedes Regal die Etagen laden
+    const regaleMitEtagen = regale.map((regal) => {
+      // Etagen für dieses Regal laden
+      const etagen = db
         .prepare(
-          "SELECT id, bezeichnung, beschreibung FROM faecher WHERE regal_id = ? ORDER BY id"
+          "SELECT id, nummer, name FROM etagen WHERE regal_id = ? ORDER BY nummer"
         )
         .all(regal.id);
 
-      // Für jedes Fach die Bilder laden
-      const faecherMitBildern = faecher.map((fach) => {
-        const bilder = db
-          .prepare("SELECT id, dateipfad FROM bilder WHERE fach_id = ? ORDER BY datum_erstellt")
-          .all(fach.id);
+      // Für jede Etage die Fächer laden
+      const etagenMitFaechern = etagen.map((etage) => {
+        // Fächer für diese Etage laden
+        const faecher = db
+          .prepare(
+            "SELECT id, bezeichnung, beschreibung FROM faecher WHERE etage_id = ? ORDER BY id"
+          )
+          .all(etage.id);
+
+        // Für jedes Fach die Bilder laden
+        const faecherMitBildern = faecher.map((fach) => {
+          const bilder = db
+            .prepare("SELECT id, dateipfad FROM bilder WHERE fach_id = ? ORDER BY datum_erstellt")
+            .all(fach.id);
+
+          return {
+            id: fach.id.toString(),
+            bezeichnung: fach.bezeichnung,
+            beschreibung: fach.beschreibung || undefined,
+            bilder: bilder.map((bild) => ({
+              id: bild.id.toString(),
+              url: `http://localhost:5000/bilder/${bild.dateipfad.split("/").pop()}`,
+            })),
+          };
+        });
 
         return {
-          id: fach.id.toString(),
-          name: fach.bezeichnung,
-          description: fach.beschreibung || undefined,
-          rackId: regal.id.toString(),
-          images: bilder.map((bild) => ({
-            id: bild.id.toString(),
-            url: `http://localhost:5000/bilder/${bild.dateipfad.split("/").pop()}`,
-          })),
+          id: etage.id.toString(),
+          nummer: etage.nummer,
+          name: etage.name || undefined,
+          faecher: faecherMitBildern,
         };
       });
 
@@ -43,11 +59,11 @@ router.get("/", authenticateToken, (req, res) => {
         id: regal.id.toString(),
         name: regal.name,
         description: regal.beschreibung || undefined,
-        slots: faecherMitBildern,
+        etagen: etagenMitFaechern,
       };
     });
 
-    res.json(regaleMitFaechern);
+    res.json(regaleMitEtagen);
   } catch (error) {
     console.error("Fehler beim Laden der Regale:", error);
     res.status(500).json({
@@ -60,7 +76,7 @@ router.get("/", authenticateToken, (req, res) => {
 // POST /api/regal - Neues Regal hinzufügen
 router.post("/", authenticateToken, express.json(), (req, res) => {
   try {
-    const { name, beschreibung, description, slotCount } = req.body;
+    const { name, beschreibung, description, anzahl_etagen, slotCount } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -70,12 +86,16 @@ router.post("/", authenticateToken, express.json(), (req, res) => {
     }
 
     const beschreibungText = beschreibung || description || null;
-    const anzahlFaecher = slotCount && slotCount > 0 ? parseInt(slotCount) : 10;
+    const anzahlEtagen = anzahl_etagen && anzahl_etagen > 0 ? parseInt(anzahl_etagen) : 1;
+    const anzahlFaecherProEtage = slotCount && slotCount > 0 ? parseInt(slotCount) : 3;
 
     // Transaction starten
     const insertRegal = db.prepare("INSERT INTO regale (name, beschreibung) VALUES (?, ?)");
+    const insertEtage = db.prepare(
+      "INSERT INTO etagen (regal_id, nummer, name) VALUES (?, ?, ?)"
+    );
     const insertFach = db.prepare(
-      "INSERT INTO faecher (regal_id, bezeichnung) VALUES (?, ?)"
+      "INSERT INTO faecher (etage_id, bezeichnung) VALUES (?, ?)"
     );
 
     const insertMany = db.transaction((regalData) => {
@@ -83,22 +103,35 @@ router.post("/", authenticateToken, express.json(), (req, res) => {
       const result = insertRegal.run(regalData.name, regalData.beschreibung || null);
       const regalId = result.lastInsertRowid;
 
-      // Fächer automatisch erstellen
-      for (let i = 1; i <= anzahlFaecher; i++) {
-        insertFach.run(regalId, `F${i}`);
+      // Etagen erstellen
+      for (let e = 1; e <= anzahlEtagen; e++) {
+        const etageResult = insertEtage.run(regalId, e, `Etage ${e}`);
+        const etageId = etageResult.lastInsertRowid;
+
+        // Fächer pro Etage erstellen
+        for (let f = 1; f <= anzahlFaecherProEtage; f++) {
+          insertFach.run(etageId, `E${e}-F${f}`);
+        }
       }
 
-      return regalId;
+      return { regalId, anzahlEtagen, anzahlFaecherProEtage };
     });
 
-    const regalId = insertMany({ name: name.trim(), beschreibung: beschreibungText?.trim() || null });
+    const { regalId, anzahlEtagen: createdEtagen, anzahlFaecherProEtage: createdFaecher } = insertMany({
+      name: name.trim(),
+      beschreibung: beschreibungText?.trim() || null,
+    });
+
+    const gesamtFaecher = createdEtagen * createdFaecher;
 
     res.status(201).json({
-      nachricht: `Neues Regal erfolgreich erstellt mit ${anzahlFaecher} Fächern.`,
+      nachricht: `Neues Regal erfolgreich erstellt mit ${createdEtagen} Etagen und ${gesamtFaecher} Fächern.`,
       daten: {
         id: regalId.toString(),
         name: name.trim(),
         beschreibung: beschreibungText?.trim() || null,
+        anzahl_etagen: createdEtagen,
+        anzahl_faecher_pro_etage: createdFaecher,
       },
     });
   } catch (error) {
@@ -178,9 +211,19 @@ router.delete("/:id", authenticateToken, (req, res) => {
       });
     }
 
-    // Alle Fächer für dieses Regal laden
-    const faecher = db.prepare("SELECT id FROM faecher WHERE regal_id = ?").all(regalId);
-    const fachIds = faecher.map((f) => f.id);
+    // Alle Etagen für dieses Regal laden
+    const etagen = db.prepare("SELECT id FROM etagen WHERE regal_id = ?").all(regalId);
+    const etageIds = etagen.map((e) => e.id);
+
+    // Für jede Etage: Alle Fächer laden
+    let fachIds = [];
+    if (etageIds.length > 0) {
+      const placeholders = etageIds.map(() => "?").join(",");
+      const faecher = db
+        .prepare(`SELECT id FROM faecher WHERE etage_id IN (${placeholders})`)
+        .all(...etageIds);
+      fachIds = faecher.map((f) => f.id);
+    }
 
     // Alle Bilder für diese Fächer löschen (Dateien werden später bereinigt)
     if (fachIds.length > 0) {
@@ -188,10 +231,7 @@ router.delete("/:id", authenticateToken, (req, res) => {
       db.prepare(`DELETE FROM bilder WHERE fach_id IN (${placeholders})`).run(...fachIds);
     }
 
-    // Alle Fächer löschen
-    db.prepare("DELETE FROM faecher WHERE regal_id = ?").run(regalId);
-
-    // Regal löschen
+    // Regal löschen (Etagen und Fächer werden durch CASCADE automatisch gelöscht)
     db.prepare("DELETE FROM regale WHERE id = ?").run(regalId);
 
     res.json({
