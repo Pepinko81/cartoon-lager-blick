@@ -57,5 +57,37 @@ router.put("/:id", authenticateToken, express.json(), (req, res) => {
   }
 });
 
+// DELETE /api/fach/:id - Fach löschen (inkl. alle Bilder)
+router.delete("/:id", authenticateToken, (req, res) => {
+  try {
+    const fachId = parseInt(req.params.id);
+
+    // Prüfen ob Fach existiert
+    const fach = db.prepare("SELECT id FROM faecher WHERE id = ?").get(fachId);
+    if (!fach) {
+      return res.status(404).json({
+        nachricht: "Fach nicht gefunden",
+        fehler: true,
+      });
+    }
+
+    // Alle Bilder für dieses Fach löschen (Dateien werden später bereinigt)
+    db.prepare("DELETE FROM bilder WHERE fach_id = ?").run(fachId);
+
+    // Fach löschen
+    db.prepare("DELETE FROM faecher WHERE id = ?").run(fachId);
+
+    res.json({
+      nachricht: "Fach erfolgreich gelöscht",
+    });
+  } catch (error) {
+    console.error("Fehler beim Löschen des Fachs:", error);
+    res.status(500).json({
+      nachricht: "Fehler beim Löschen des Fachs",
+      fehler: true,
+    });
+  }
+});
+
 export default router;
 

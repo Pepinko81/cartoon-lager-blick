@@ -17,7 +17,7 @@ const PORT = 5000;
 // CORS nur für localhost erlauben
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080", "http://127.0.0.1:5173", "http://127.0.0.1:8080"],
     credentials: true,
   })
 );
@@ -34,11 +34,11 @@ app.use("/bilder", express.static(bilderDir));
 app.use("/api", authRoutes);
 
 // Geschützte API-Routen
-app.use("/api/regale", regaleRoutes);
-app.use("/api/regal", regaleRoutes); // POST /api/regal
-app.use("/api/fach", faecherRoutes);
-app.use("/api/bild", bilderRoutes);
+app.use("/api/regale", regaleRoutes); // GET /api/regale
+app.use("/api/regal", regaleRoutes); // POST /api/regal, PUT /api/regal/:id, DELETE /api/regal/:id
+app.use("/api/fach", faecherRoutes); // PUT /api/fach/:id, DELETE /api/fach/:id
 app.use("/api/fach", bilderRoutes); // POST /api/fach/:id/bild
+app.use("/api/bild", bilderRoutes); // DELETE /api/bild/:id
 
 // Fehlerbehandlung für Multer-Upload-Fehler
 app.use((error, req, res, next) => {

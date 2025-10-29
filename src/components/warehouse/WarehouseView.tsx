@@ -7,6 +7,7 @@ import { Rack as RackType, Slot as SlotType, AddRackData } from "@/types/warehou
 import { Rack } from "./Rack";
 import { SlotModal } from "./SlotModal";
 import { AddRackModal } from "./AddRackModal";
+import { EditRackModal } from "./EditRackModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +27,7 @@ const API_BASE = "http://localhost:5000/api";
 export const WarehouseView = () => {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isAddRackModalOpen, setIsAddRackModalOpen] = useState(false);
+  const [editingRackId, setEditingRackId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { getAuthHeader, benutzer, logout } = useAuth();
   const navigate = useNavigate();
@@ -86,14 +88,94 @@ export const WarehouseView = () => {
     },
   });
 
+  // Update rack mutation
+  const updateRackMutation = useMutation({
+    mutationFn: async ({
+      rackId,
+      name,
+      description,
+    }: {
+      rackId: string;
+      name: string;
+      description?: string;
+    }) => {
+      const response = await fetch(`${API_BASE}/regal/${rackId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify({ name, description }),
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Aktualisieren des Regals");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["racks"] });
+      toast({
+        title: "Erfolgreich",
+        description: "Regal wurde aktualisiert",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Fehler",
+        description: "Regal konnte nicht aktualisiert werden",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete rack mutation
+  const deleteRackMutation = useMutation({
+    mutationFn: async (rackId: string) => {
+      const response = await fetch(`${API_BASE}/regal/${rackId}`, {
+        method: "DELETE",
+        headers: {
+          ...getAuthHeader(),
+        },
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Löschen des Regals");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["racks"] });
+      toast({
+        title: "Erfolgreich",
+        description: "Regal wurde gelöscht",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Fehler",
+        description: "Regal konnte nicht gelöscht werden",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Update slot mutation
   const updateSlotMutation = useMutation({
     mutationFn: async ({
       slotId,
+      name,
       description,
     }: {
       slotId: string;
-      description: string;
+      name?: string;
+      description?: string;
     }) => {
       const response = await fetch(`${API_BASE}/fach/${slotId}`, {
         method: "PUT",
@@ -101,7 +183,7 @@ export const WarehouseView = () => {
           "Content-Type": "application/json",
           ...getAuthHeader(),
         },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({ name, bezeichnung: name, description, beschreibung: description }),
       });
       if (!response.ok) {
         if (response.status === 401) {
@@ -117,14 +199,58 @@ export const WarehouseView = () => {
     },
   });
 
+  // Delete slot mutation
+  const deleteSlotMutation = useMutation({
+    mutationFn: async (slotId: string) => {
+      const response = await fetch(`${API_BASE}/fach/${slotId}`, {
+        method: "DELETE",
+        headers: {
+          ...getAuthHeader(),
+        },
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+        }
+        throw new Error("Fehler beim Löschen des Fachs");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["racks"] });
+      setSelectedSlotId(null);
+      toast({
+        title: "Erfolgreich",
+        description: "Fach wurde gelöscht",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Fehler",
+        description: "Fach konnte nicht gelöscht werden",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Upload image mutation
   const uploadImageMutation = useMutation({
     mutationFn: async ({ slotId, file }: { slotId: string; file: File }) => {
       const formData = new FormData();
       formData.append("bild", file);
+      const authHeader = getAuthHeader();
+      const headers: HeadersInit = {};
+      
+      // Add Authorization header if available
+      if (authHeader && typeof authHeader === 'object' && 'Authorization' in authHeader) {
+        headers['Authorization'] = authHeader['Authorization'] as string;
+      }
+      
+      // Note: Don't set Content-Type for FormData - browser will set it automatically with boundary
       const response = await fetch(`${API_BASE}/fach/${slotId}/bild`, {
         method: "POST",
-        headers: getAuthHeader(),
+        headers: headers,
         body: formData,
       });
       if (!response.ok) {
@@ -132,7 +258,9 @@ export const WarehouseView = () => {
           logout();
           navigate("/login");
         }
-        throw new Error("Fehler beim Hochladen des Bildes");
+        const errorText = await response.text();
+        console.error("Upload error:", errorText);
+        throw new Error(`Fehler beim Hochladen des Bildes: ${response.status}`);
       }
       return response.json();
     },
@@ -156,8 +284,26 @@ export const WarehouseView = () => {
     .flatMap((rack) => rack.slots)
     .find((slot) => slot.id === selectedSlotId);
 
-  const handleSlotUpdate = (slotId: string, description: string) => {
-    updateSlotMutation.mutate({ slotId, description });
+  const handleSlotUpdate = (slotId: string, name?: string, description?: string) => {
+    updateSlotMutation.mutate({ slotId, name, description });
+  };
+
+  const handleRackEdit = (rackId: string) => {
+    setEditingRackId(rackId);
+  };
+
+  const handleRackUpdate = (rackId: string, data: { name: string; description?: string }) => {
+    updateRackMutation.mutate({ rackId, ...data });
+    setEditingRackId(null);
+  };
+
+  const handleRackDelete = (rackId: string) => {
+    deleteRackMutation.mutate(rackId);
+    setEditingRackId(null);
+  };
+
+  const handleSlotDelete = (slotId: string) => {
+    deleteSlotMutation.mutate(slotId);
   };
 
   const handleImageUpload = (slotId: string, file: File) => {
@@ -344,6 +490,7 @@ export const WarehouseView = () => {
                 key={rack.id}
                 rack={rack}
                 onSlotClick={(slotId) => setSelectedSlotId(slotId)}
+                onEdit={handleRackEdit}
               />
             ))}
           </div>
@@ -357,12 +504,21 @@ export const WarehouseView = () => {
         onUpdate={handleSlotUpdate}
         onImageUpload={handleImageUpload}
         onImageDelete={handleImageDelete}
+        onDelete={handleSlotDelete}
       />
 
       <AddRackModal
         isOpen={isAddRackModalOpen}
         onClose={() => setIsAddRackModalOpen(false)}
         onAdd={(data) => addRackMutation.mutate(data)}
+      />
+
+      <EditRackModal
+        rack={racks.find((r) => r.id === editingRackId) || null}
+        isOpen={!!editingRackId}
+        onClose={() => setEditingRackId(null)}
+        onUpdate={handleRackUpdate}
+        onDelete={handleRackDelete}
       />
     </div>
   );

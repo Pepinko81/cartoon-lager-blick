@@ -1,17 +1,20 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Trash2, Save } from "lucide-react";
 import { Slot } from "@/types/warehouse";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 
 interface SlotModalProps {
   slot: Slot | null;
   onClose: () => void;
-  onUpdate: (slotId: string, description: string) => void;
+  onUpdate: (slotId: string, name?: string, description?: string) => void;
   onImageUpload: (slotId: string, file: File) => void;
   onImageDelete: (slotId: string, imageUrl: string) => void;
+  onDelete: (slotId: string) => void;
 }
 
 export const SlotModal = ({
@@ -20,17 +23,42 @@ export const SlotModal = ({
   onUpdate,
   onImageUpload,
   onImageDelete,
+  onDelete,
 }: SlotModalProps) => {
+  const [name, setName] = useState(slot?.name || "");
   const [description, setDescription] = useState(slot?.description || "");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (slot) {
+      setName(slot.name);
+      setDescription(slot.description || "");
+    }
+  }, [slot]);
 
   if (!slot) return null;
 
   const handleSave = () => {
-    onUpdate(slot.id, description);
-    toast({
-      title: "Gespeichert",
-      description: "Beschreibung wurde erfolgreich aktualisiert",
-    });
+    const nameChanged = name !== slot.name;
+    const descriptionChanged = description !== (slot.description || "");
+    
+    if (nameChanged || descriptionChanged) {
+      onUpdate(slot.id, nameChanged ? name : undefined, descriptionChanged ? description : undefined);
+      toast({
+        title: "Gespeichert",
+        description: "Fach wurde erfolgreich aktualisiert",
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    onDelete(slot.id);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,7 +84,9 @@ export const SlotModal = ({
           {/* Header */}
           <div className="bg-gradient-to-r from-primary to-primary-glow p-6 text-primary-foreground">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">{slot.name}</h2>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold">{slot.name}</h2>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -70,6 +100,18 @@ export const SlotModal = ({
 
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            {/* Name Section */}
+            <div className="mb-6">
+              <Label htmlFor="slot-name">Fachname</Label>
+              <Input
+                id="slot-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Fachname"
+                className="mt-1"
+              />
+            </div>
+
             {/* Images Section */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 text-foreground">Bilder</h3>
@@ -86,7 +128,11 @@ export const SlotModal = ({
                       <img
                         src={imageUrl}
                         alt={`${slot.name} - ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border-2 border-border"
+                        className="w-full h-32 object-contain rounded-lg border-2 border-border bg-muted"
+                        onError={(e) => {
+                          console.error('Image failed to load:', imageUrl);
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
                       <Button
                         variant="destructive"
@@ -103,17 +149,16 @@ export const SlotModal = ({
 
               <label className="block">
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
                   className="hidden"
                 />
-                <Button variant="outline" className="w-full cursor-pointer" asChild>
-                  <span>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Bild hochladen
-                  </span>
-                </Button>
+                <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  Bild hochladen
+                </div>
               </label>
             </div>
 
@@ -132,14 +177,47 @@ export const SlotModal = ({
           </div>
 
           {/* Footer */}
-          <div className="p-6 bg-muted border-t border-border flex justify-end gap-3">
-            <Button variant="outline" onClick={onClose}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleSave}>
-              <Save className="w-4 h-4 mr-2" />
-              Speichern
-            </Button>
+          <div className="p-6 bg-muted border-t border-border flex justify-between items-center">
+            <div>
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-destructive-foreground">
+                    Sicher löschen?
+                  </p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDelete}
+                  >
+                    Endgültig löschen
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Löschen
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={onClose}>
+                Abbrechen
+              </Button>
+              <Button onClick={handleSave}>
+                <Save className="w-4 h-4 mr-2" />
+                Speichern
+              </Button>
+            </div>
           </div>
         </motion.div>
       </div>
