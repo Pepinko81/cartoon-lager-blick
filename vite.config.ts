@@ -7,9 +7,9 @@ import { VitePWA } from "vite-plugin-pwa";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: "0.0.0.0",
     port: 8080,
-    allowedHosts: ["lager.local", "localhost", "127.0.0.1"],
+    allowedHosts: ["lager.local", "localhost", "127.0.0.1", "192.168.178.57"],
   },
   plugins: [
     react(),
@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
-            urlPattern: /^http:\/\/lager\.local:5000\/api\/.*/i,
+            urlPattern: /^http:\/\/(lager\.local|192\.168\.178\.57|localhost):5000\/api\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",

@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = "http://lager.local:5000/api";
+import { API_BASE } from "@/config/api";
 
 export const LoginPage = () => {
   const [email, setEmail] = useState("");

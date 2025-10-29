@@ -26,7 +26,7 @@ interface EtageModalProps {
   onEtagenChange: () => void;
 }
 
-const API_BASE = "http://lager.local:5000/api";
+import { API_BASE } from "@/config/api";
 
 export const EtageModal = ({ 
   isOpen, 
