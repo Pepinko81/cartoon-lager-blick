@@ -33,33 +33,56 @@ export const Rack = ({ rack, onSlotClick, onEdit, onEtagenChange }: RackProps) =
         {/* Rack Header */}
         <div className="bg-gradient-to-r from-secondary to-secondary/80 p-4 text-secondary-foreground relative group">
           <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h3 className="text-xl font-bold">{rack.name}</h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg sm:text-xl font-bold truncate">{rack.name}</h3>
               {rack.description && (
-                <p className="text-sm opacity-90 mt-1">{rack.description}</p>
+                <p className="text-sm opacity-90 mt-1 line-clamp-2">{rack.description}</p>
               )}
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-2 ml-2">
+              {/* Mobile: Always visible buttons */}
+              <div className="flex sm:hidden gap-1">
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="text-secondary-foreground hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                  size="sm"
+                  onClick={() => onEdit(rack.id)}
+                  className="text-secondary-foreground hover:bg-white/20 h-8 px-2"
                 >
-                  <MoreVertical className="w-5 h-5" />
+                  <Edit className="w-4 h-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(rack.id)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Regal bearbeiten
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsEtageModalOpen(true)}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Etagen verwalten
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEtageModalOpen(true)}
+                  className="text-secondary-foreground hover:bg-white/20 h-8 px-2"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Desktop: Dropdown menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-secondary-foreground hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex"
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(rack.id)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Regal bearbeiten
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsEtageModalOpen(true)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Etagen verwalten
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
@@ -81,7 +104,7 @@ export const Rack = ({ rack, onSlotClick, onEdit, onEtagenChange }: RackProps) =
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                       {etage.faecher.map((fach, fachIndex) => {
                         // Convert Fach to Slot format for compatibility
                         const slot = {

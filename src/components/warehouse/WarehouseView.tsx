@@ -417,20 +417,62 @@ export const WarehouseView = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-40 backdrop-blur-lg bg-card/80">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <motion.div
                 animate={{ rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="flex-shrink-0"
               >
-                <WarehouseIcon className="w-8 h-8 text-primary" />
+                <WarehouseIcon className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               </motion.div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-foreground truncate">
                 Lagerverwaltung
               </h1>
             </div>
-            <div className="flex items-center gap-3">
+            
+            {/* Mobile Layout */}
+            <div className="flex sm:hidden items-center gap-1">
+              <Button
+                onClick={() => setIsAddRackModalOpen(true)}
+                size="sm"
+                className="h-8 px-2 text-xs"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                <span className="hidden xs:inline">Neues</span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-xs">
+                        {benutzer?.email.charAt(0).toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel className="text-xs">
+                    {benutzer?.email || "Benutzer"}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      logout();
+                      navigate("/login");
+                    }}
+                    className="text-xs"
+                  >
+                    <LogOut className="w-3 h-3 mr-2" />
+                    Abmelden
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex items-center gap-3">
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -468,7 +510,7 @@ export const WarehouseView = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {racks.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -488,7 +530,7 @@ export const WarehouseView = () => {
             </Button>
           </motion.div>
         ) : (
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
             {racks.map((rack) => (
               <Rack
                 key={rack.id}

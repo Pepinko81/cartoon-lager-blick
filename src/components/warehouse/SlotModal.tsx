@@ -74,32 +74,32 @@ export const SlotModal = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="bg-card rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+          className="bg-card rounded-2xl shadow-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary to-primary-glow p-6 text-primary-foreground">
+          <div className="bg-gradient-to-r from-primary to-primary-glow p-4 sm:p-6 text-primary-foreground">
             <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold">{slot.name}</h2>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-2xl font-bold truncate">{slot.name}</h2>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="text-primary-foreground hover:bg-white/20"
+                className="text-primary-foreground hover:bg-white/20 flex-shrink-0 ml-2"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </Button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-140px)]">
             {/* Name Section */}
             <div className="mb-6">
               <Label htmlFor="slot-name">Fachname</Label>
@@ -115,7 +115,7 @@ export const SlotModal = ({
             {/* Images Section */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 text-foreground">Bilder</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                 {(slot.images || []).map((image, index) => {
                   const imageUrl = typeof image === "string" ? image : image.url;
                   return (
@@ -177,46 +177,52 @@ export const SlotModal = ({
           </div>
 
           {/* Footer */}
-          <div className="p-6 bg-muted border-t border-border flex justify-between items-center">
-            <div>
-              {showDeleteConfirm ? (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-destructive-foreground">
-                    Sicher löschen?
-                  </p>
+          <div className="p-4 sm:p-6 bg-muted border-t border-border">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                {showDeleteConfirm ? (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <p className="text-sm text-destructive-foreground">
+                      Sicher löschen?
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDelete}
+                      >
+                        Endgültig löschen
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowDeleteConfirm(false)}
+                      >
+                        Abbrechen
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                   <Button
                     variant="destructive"
-                    size="sm"
                     onClick={handleDelete}
-                  >
-                    Endgültig löschen
-                  </Button>
-                  <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => setShowDeleteConfirm(false)}
+                    className="w-full sm:w-auto"
                   >
-                    Abbrechen
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Löschen
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Löschen
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+                  Abbrechen
                 </Button>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={onClose}>
-                Abbrechen
-              </Button>
-              <Button onClick={handleSave}>
-                <Save className="w-4 h-4 mr-2" />
-                Speichern
-              </Button>
+                <Button onClick={handleSave} className="w-full sm:w-auto">
+                  <Save className="w-4 h-4 mr-2" />
+                  Speichern
+                </Button>
+              </div>
             </div>
           </div>
         </motion.div>
