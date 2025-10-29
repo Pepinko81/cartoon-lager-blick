@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Warehouse as WarehouseIcon } from "lucide-react";
+import { Plus, Warehouse as WarehouseIcon, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Rack as RackType, Slot as SlotType, AddRackData } from "@/types/warehouse";
@@ -8,11 +9,14 @@ import { Rack } from "./Rack";
 import { SlotModal } from "./SlotModal";
 import { AddRackModal } from "./AddRackModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
 const API_BASE = "http://localhost:5000/api";
 
 export const WarehouseView = () => {
+  const navigate = useNavigate();
+  const { token, logout } = useAuth();
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isAddRackModalOpen, setIsAddRackModalOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -21,7 +25,11 @@ export const WarehouseView = () => {
   const { data: racks = [], isLoading } = useQuery<RackType[]>({
     queryKey: ["racks"],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/regale`);
+      const response = await fetch(`${API_BASE}/regale`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       if (!response.ok) throw new Error("Fehler beim Laden der Regale");
       return response.json();
     },
@@ -32,7 +40,10 @@ export const WarehouseView = () => {
     mutationFn: async (data: AddRackData) => {
       const response = await fetch(`${API_BASE}/regal`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error("Fehler beim Hinzufügen des Regals");
@@ -65,7 +76,10 @@ export const WarehouseView = () => {
     }) => {
       const response = await fetch(`${API_BASE}/slot/${slotId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({ description }),
       });
       if (!response.ok) throw new Error("Fehler beim Aktualisieren des Fachs");
@@ -83,6 +97,9 @@ export const WarehouseView = () => {
       formData.append("bild", file);
       const response = await fetch(`${API_BASE}/slot/${slotId}/bild`, {
         method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
         body: formData,
       });
       if (!response.ok) throw new Error("Fehler beim Hochladen des Bildes");
@@ -159,6 +176,17 @@ export const WarehouseView = () => {
               <Button onClick={() => setIsAddRackModalOpen(true)} size="lg">
                 <Plus className="w-5 h-5 mr-2" />
                 Neues Regal
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => {
+                  logout();
+                  navigate("/auth");
+                }}
+              >
+                <LogOut className="w-5 h-5 mr-2" />
+                Abmelden
               </Button>
             </div>
           </div>
