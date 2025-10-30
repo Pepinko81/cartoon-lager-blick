@@ -682,6 +682,20 @@ export const WarehouseView = () => {
           onDelete={handleRackDelete}
         />
       )}
+
+      {/* Footer */}
+      <footer className="mt-12 py-6 border-t border-border">
+        <div className="container mx-auto px-3 sm:px-4 text-center text-sm text-muted-foreground">
+          <a
+            href="/LICENSE.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground transition-colors underline"
+          >
+            © 2025 HashMatrix — Licensed under the MIT License
+          </a>
+        </div>
+      </footer>
     </div>
   );
 };
