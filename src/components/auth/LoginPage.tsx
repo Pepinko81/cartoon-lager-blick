@@ -19,7 +19,7 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginWithToken, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   // Weiterleitung wenn bereits eingeloggt
@@ -56,7 +56,13 @@ export const LoginPage = () => {
         return;
       }
 
-      await login(email, passwort);
+      // Direkt mit erhaltenem Token einloggen (kein zweiter API-Call)
+      if (data?.token) {
+        loginWithToken(data.token);
+      } else {
+        // Fallback: alter Weg
+        await login(email, passwort);
+      }
       navigate("/");
     } catch (error) {
       console.error('❌ Login error:', error);

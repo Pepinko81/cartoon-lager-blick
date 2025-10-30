@@ -1,0 +1,14 @@
+[Unit]
+Description=Lagerverwaltung Frontend (Vite + React)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/cartoon-lager-blick
+ExecStart=/usr/bin/npm run dev
+Restart=always
+User=www-data
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

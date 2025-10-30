@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { API_BASE } from "@/config/api";
 
 interface Benutzer {
   id: string;
@@ -10,6 +11,7 @@ interface AuthContextType {
   benutzer: Benutzer | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithToken: (token: string) => void;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   getAuthHeader: () => HeadersInit;
@@ -41,12 +43,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch("http://localhost:5000/api/login", {
+    const response = await fetch(`${API_BASE}/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      // Backend erwartet deutsches Feld 'passwort'
+      body: JSON.stringify({ email, passwort: password }),
     });
 
     if (!response.ok) {
@@ -56,10 +59,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const data = await response.json();
     const newToken = data.token;
-    
+    loginWithToken(newToken);
+  };
+
+  const loginWithToken = (newToken: string) => {
     setToken(newToken);
     localStorage.setItem(TOKEN_KEY, newToken);
-    // Benutzer-Info aus Token extrahieren
     try {
       const payload = JSON.parse(atob(newToken.split(".")[1]));
       setBenutzer({ id: payload.id.toString(), email: payload.email });
@@ -69,12 +74,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (email: string, password: string) => {
-    const response = await fetch("http://localhost:5000/api/register", {
+    const response = await fetch(`${API_BASE}/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      // Backend erwartet deutsches Feld 'passwort'
+      body: JSON.stringify({ email, passwort: password }),
     });
 
     if (!response.ok) {
@@ -84,16 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const data = await response.json();
     const newToken = data.token;
-    
-    setToken(newToken);
-    localStorage.setItem(TOKEN_KEY, newToken);
-    // Benutzer-Info aus Token extrahieren
-    try {
-      const payload = JSON.parse(atob(newToken.split(".")[1]));
-      setBenutzer({ id: payload.id.toString(), email: payload.email });
-    } catch (error) {
-      console.error("Fehler beim Decodieren des Tokens:", error);
-    }
+    loginWithToken(newToken);
   };
 
   const logout = () => {
@@ -118,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         benutzer,
         isAuthenticated: !!token,
         login,
+        loginWithToken,
         register,
         logout,
         getAuthHeader,

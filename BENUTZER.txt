@@ -1,0 +1,6 @@
+# Schneller Zugang
+
+- E-Mail: test@lager.de
+- Passwort: 123456
+
+Bitte eigenes Passwort nach dem ersten Login setzen!

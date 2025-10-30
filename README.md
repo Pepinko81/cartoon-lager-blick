@@ -1,73 +1,150 @@
-# Welcome to your Lovable project
+# 📦 Lagerverwaltung 3D (Cartoon-Lager-Blick)
 
-## Project info
+Willkommen beim wohl modernsten lokalen Lagerverwaltungs-Tool!
+**Features:**
+- Benutzer-Authentifizierung (JWT, bcrypt)
+- SQLite + lokale Bildspeicherung, komplett ohne Cloud
+- 3D Cartoon-Regale (React Three Fiber)
+- Etagen, Fächer, Bilder – alles verschachtelt, ganz wie Sie es aus der echten Lagerwelt kennen
+- Browserbasiert, PWA ready: auch offline nutzbar, mobil und auf dem Tablet
 
-**URL**: https://lovable.dev/projects/3b8200f9-438c-49cf-86d8-8519cf9b703c
+---
 
-## How can I edit this code?
+## 🚀 Schnellstart
 
-There are several ways of editing your application.
+### Voraussetzungen
 
-**Use Lovable**
+- Node.js ≥ 18 (empfohlen 20+)
+- npm ≥ 9
+- (Linux, empfohlen für systemd Units)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3b8200f9-438c-49cf-86d8-8519cf9b703c) and start prompting.
+### 1️⃣ Repository klonen
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+git clone https://github.com/Pepinko81/cartoon-lager-blick.git
+cd cartoon-lager-blick
 ```
 
-**Edit a file directly in GitHub**
+### 2️⃣ Backend installieren
+```bash
+cd backend
+npm install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 3️⃣ Frontend installieren
+```bash
+cd ../
+npm install
+```
 
-**Use GitHub Codespaces**
+### 4️⃣ Datenbank & Beispiel-Daten (automatisch!)
+- Beim ersten Start richtet sich die Datenbank inkl. Beispiel-Regale ein!
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🟢 Starten
 
-This project is built with:
+**Backend (API, Express):**
+```bash
+cd backend
+npm run dev
+```
+Standard: http://localhost:5000
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+**Frontend (Vite React, 3D):**
+```bash
+cd ../
+npm run dev
+```
+Standard: http://localhost:8080
 
-## How can I deploy this project?
+**Mobil/Tablet?**  
+Im selben WLAN einfach `http://<IP-des-Rechners>:8080` im Browser aufrufen.
 
-Simply open [Lovable](https://lovable.dev/projects/3b8200f9-438c-49cf-86d8-8519cf9b703c) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🔑 Erstlogin
+- **E-Mail:** test@lager.de
+- **Passwort:** 123456
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🧩 Features
+- Regale mit mehreren Etagen und Fächern
+- Bilder-Upload direkt ins lokale Dateisystem
+- 3D-Visualisierung der Regale (Three Fiber, cartoonig, performant)
+- Responsive: Desktop, Tablet, Smartphone
+- Authentifiziert & geschützt (JWT)
+- Kann als PWA installiert werden (Home-Screen auf Handy/Tablet)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## 🛠️ Systemd Units
+Beispiel: `/etc/systemd/system/lager-backend.service`
+
+```ini
+[Unit]
+Description=Lagerverwaltung Backend (Express + SQLite)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/cartoon-lager-blick/backend
+ExecStart=/usr/bin/npm run dev
+Restart=always
+User=www-data
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Beispiel: `/etc/systemd/system/lager-frontend.service`
+
+```ini
+[Unit]
+Description=Lagerverwaltung Frontend (Vite + React)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/cartoon-lager-blick
+ExecStart=/usr/bin/npm run dev
+Restart=always
+User=www-data
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Nicht vergessen:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now lager-backend
+sudo systemctl enable --now lager-frontend
+```
+---
+
+## 🧰 Troubleshooting
+
+**Port schon belegt:**  
+`lsof -i :5000 ; lsof -i :8080` - Prozess beenden oder Port anpassen.
+
+**Bilder werden nicht angezeigt?**  
+IP-Adresse/Host ist im CORS für Backend und Frontend erlaubt?
+
+**Fehler: JWT läuft ab**  
+Erneut einloggen erforderlich.
+
+---
+
+## 👑 Präsentationsmodus
+
+- 3D-Visualisierung: Regal auswählen, Fächer oder Bilder einfach per Klick managen
+- Live im Browser: mobil, Tablet, Desktop, auch lokal installierbar (PWA)
+- "Regal bearbeiten" und "Etagen verwalten" direkt als erweiterte Optionen
+---
+
+Viel Spaß und Erfolg beim Präsentieren dieses Projekts!  
+_„Kein Lager mehr ohne Cartoon-Lager-Blick!“_
