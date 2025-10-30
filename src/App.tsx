@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { NetworkTest } from "@/components/debug/NetworkTest";
+import { SplashScreen } from "@/components/SplashScreen";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -18,6 +19,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
+        <SplashScreen />
         <Toaster />
         <Sonner />
         <AuthProvider>
