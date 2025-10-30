@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "Lagerverwaltung",
-        short_name: "Lager",
-        description: "Interaktives Lagerverwaltungssystem",
+        name: "Offline 3D Shelf & Storage Organizer",
+        short_name: "3D Organizer",
+        description: "Offline 3D Shelf & Storage Organizer - Modern warehouse management system",
         theme_color: "#f59e0b",
         background_color: "#fafafa",
         display: "standalone",
