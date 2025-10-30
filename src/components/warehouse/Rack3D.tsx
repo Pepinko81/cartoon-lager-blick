@@ -136,7 +136,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 
 export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProps) => {
   return (
-    <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl">
+    <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl relative">
       <Canvas
         camera={{ position: [0, 0, 10], fov: 50 }}
         gl={{ antialias: true }}
@@ -161,17 +161,29 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
           maxDistance={20}
         />
       </Canvas>
-      
-      {/* Rack Info Overlay */}
-      <div className="absolute top-4 right-4 flex gap-2 z-20">
-        <button onClick={() => onEdit(rack.id)} className="px-2 py-1 text-xs rounded bg-card hover:bg-accent border border-border shadow">
-          <span className="inline-flex items-center gap-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}><path d="M15.232 5.232l3.536 3.536a2 2 0 010 2.828l-7.071 7.071A2 2 0 019.12 19.12l-3.535-3.535a2 2 0 010-2.829l7.07-7.07a2 2 0 012.828 0z" /></svg>Bearbeiten</span>
+      {/* Overlay Buttons outside Canvas for persistency */}
+      <div className="absolute top-4 right-4 flex gap-2 z-50 pointer-events-auto">
+        <button
+          onClick={() => onEdit(rack.id)}
+          className="px-2 py-1 text-xs rounded bg-card hover:bg-accent border border-border shadow"
+        >
+          <span className="inline-flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}><path d="M15.232 5.232l3.536 3.536a2 2 0 010 2.828l-7.071 7.071A2 2 0 019.12 19.12l-3.535-3.535a2 2 0 010-2.829l7.07-7.07a2 2 0 012.828 0z" /></svg>
+            Bearbeiten
+          </span>
         </button>
-        <button onClick={() => onEtagenManage(rack.id)} className="px-2 py-1 text-xs rounded bg-card hover:bg-accent border border-border shadow">
-          <span className="inline-flex items-center gap-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 4v16m8-8H4" /></svg>Etagen verwalten</span>
+        <button
+          onClick={() => onEtagenManage(rack.id)}
+          className="px-2 py-1 text-xs rounded bg-card hover:bg-accent border border-border shadow"
+        >
+          <span className="inline-flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 4v16m8-8H4" /></svg>
+            Etagen verwalten
+          </span>
         </button>
       </div>
-      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border shadow-lg">
+      {/* rack info overlay can remain as before */}
+      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border shadow-lg z-40">
         <h3 className="text-lg font-bold text-foreground mb-1">{rack.name}</h3>
         {rack.description && (
           <p className="text-sm text-muted-foreground">{rack.description}</p>
