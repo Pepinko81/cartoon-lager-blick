@@ -182,8 +182,8 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
           </span>
         </button>
       </div>
-      {/* rack info overlay can remain as before */}
-      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border shadow-lg z-40">
+      {/* Rack Info Overlay */}
+      <div className="absolute top-24 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border shadow-lg z-40">
         <h3 className="text-lg font-bold text-foreground mb-1">{rack.name}</h3>
         {rack.description && (
           <p className="text-sm text-muted-foreground">{rack.description}</p>
