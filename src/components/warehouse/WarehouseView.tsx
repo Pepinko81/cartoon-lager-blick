@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Warehouse as WarehouseIcon, LogOut } from "lucide-react";
+import { Plus, Warehouse as WarehouseIcon, LogOut, Grid3x3, Box } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Rack as RackType, Slot as SlotType, AddRackData } from "@/types/warehouse";
 import { Rack } from "./Rack";
+import { Rack3D } from "./Rack3D";
 import { SlotModal } from "./SlotModal";
 import { AddRackModal } from "./AddRackModal";
 import { EditRackModal } from "./EditRackModal";
@@ -21,6 +22,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 import { API_BASE } from "@/config/api";
 
@@ -28,6 +37,8 @@ export const WarehouseView = () => {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isAddRackModalOpen, setIsAddRackModalOpen] = useState(false);
   const [editingRackId, setEditingRackId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"2d" | "3d">("3d");
+  const [selectedRackId, setSelectedRackId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { getAuthHeader, benutzer, logout } = useAuth();
   const navigate = useNavigate();
@@ -285,6 +296,16 @@ export const WarehouseView = () => {
     .flatMap((etage) => etage.faecher)
     .find((fach) => fach.id === selectedSlotId);
 
+  // Convert Fach to Slot format
+  const slotForModal = selectedSlot ? {
+    id: selectedSlot.id,
+    name: selectedSlot.bezeichnung,
+    description: selectedSlot.beschreibung,
+    images: selectedSlot.bilder,
+    rackId: racks.find(r => r.etagen.some(e => e.faecher.some(f => f.id === selectedSlot.id)))?.id || "",
+    bilder: selectedSlot.bilder,
+  } : null;
+
   const handleSlotUpdate = (slotId: string, name?: string, description?: string) => {
     updateSlotMutation.mutate({ slotId, name, description });
   };
@@ -328,12 +349,12 @@ export const WarehouseView = () => {
         return;
       }
 
-      // Prüfe ob images ein Array von Objekten mit id ist
+      // Prüfe ob bilder ein Array von Objekten mit id ist
       let bildId: string | null = null;
       
-      if (slot.images.length > 0 && typeof slot.images[0] === "object" && "id" in slot.images[0]) {
-        // Images sind Objekte mit id und url
-        const imageObj = (slot.images as Array<{ id: string; url: string }>).find(
+      if (slot.bilder.length > 0 && typeof slot.bilder[0] === "object" && "id" in slot.bilder[0]) {
+        // Bilder sind Objekte mit id und url
+        const imageObj = slot.bilder.find(
           (img) => img.url === imageUrl
         );
         bildId = imageObj?.id || null;
@@ -435,6 +456,14 @@ export const WarehouseView = () => {
             {/* Mobile Layout */}
             <div className="flex sm:hidden items-center gap-1">
               <Button
+                variant={viewMode === "3d" ? "default" : "outline"}
+                onClick={() => setViewMode(viewMode === "2d" ? "3d" : "2d")}
+                size="sm"
+                className="h-8 px-2 text-xs"
+              >
+                {viewMode === "3d" ? <Box className="w-4 h-4" /> : <Grid3x3 className="w-4 h-4" />}
+              </Button>
+              <Button
                 onClick={() => setIsAddRackModalOpen(true)}
                 size="sm"
                 className="h-8 px-2 text-xs"
@@ -473,6 +502,24 @@ export const WarehouseView = () => {
             
             {/* Desktop Layout */}
             <div className="hidden sm:flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === "2d" ? "default" : "outline"}
+                  onClick={() => setViewMode("2d")}
+                  size="sm"
+                >
+                  <Grid3x3 className="w-4 h-4 mr-2" />
+                  2D
+                </Button>
+                <Button
+                  variant={viewMode === "3d" ? "default" : "outline"}
+                  onClick={() => setViewMode("3d")}
+                  size="sm"
+                >
+                  <Box className="w-4 h-4 mr-2" />
+                  3D
+                </Button>
+              </div>
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -529,6 +576,46 @@ export const WarehouseView = () => {
               Erstes Regal hinzufügen
             </Button>
           </motion.div>
+        ) : viewMode === "3d" ? (
+          <div className="space-y-6">
+            {/* Rack Selector */}
+            <div className="bg-card rounded-lg p-4 border border-border shadow-lg">
+              <Label className="text-sm font-medium mb-2 block">Regal auswählen</Label>
+              <Select
+                value={selectedRackId || racks[0]?.id}
+                onValueChange={setSelectedRackId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Regal auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {racks.map((rack) => (
+                    <SelectItem key={rack.id} value={rack.id}>
+                      {rack.name} ({rack.etagen.length} Etagen)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 3D View */}
+            {(() => {
+              const rack = racks.find((r) => r.id === (selectedRackId || racks[0]?.id));
+              return rack ? (
+                <motion.div
+                  key={rack.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Rack3D
+                    rack={rack}
+                    onSlotClick={(slotId) => setSelectedSlotId(slotId)}
+                  />
+                </motion.div>
+              ) : null;
+            })()}
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
             {racks.map((rack) => (
@@ -546,7 +633,7 @@ export const WarehouseView = () => {
 
       {/* Modals */}
       <SlotModal
-        slot={selectedSlot || null}
+        slot={slotForModal}
         onClose={() => setSelectedSlotId(null)}
         onUpdate={handleSlotUpdate}
         onImageUpload={handleImageUpload}

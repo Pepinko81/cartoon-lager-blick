@@ -56,7 +56,7 @@ export const LoginPage = () => {
         return;
       }
 
-      login(data.token);
+      await login(email, passwort);
       navigate("/");
     } catch (error) {
       console.error('❌ Login error:', error);

@@ -24,8 +24,9 @@ export interface Slot {
   id: string;
   name: string;
   description?: string;
-  images: string[] | Array<{ id: string; url: string }>;
+  images: Array<{ id: string; url: string }>;
   rackId: string;
+  bilder?: Array<{ id: string; url: string }>; // German version for compatibility
 }
 
 export interface AddRackData {
