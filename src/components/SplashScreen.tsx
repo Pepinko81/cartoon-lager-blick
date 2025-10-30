@@ -37,7 +37,7 @@ export const SplashScreen = () => {
               <img
                 src="/logo.png"
                 alt="HashMatrix Logo"
-                className="h-32 w-auto drop-shadow-lg dark:drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]"
+                className="h-32 w-32 rounded-full object-cover drop-shadow-lg dark:drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]"
                 style={{
                   filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))",
                 }}

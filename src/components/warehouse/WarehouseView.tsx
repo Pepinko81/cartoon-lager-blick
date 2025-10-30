@@ -53,7 +53,7 @@ const LogoImage = () => {
     <img
       src="/logo.png"
       alt="HashMatrix Logo"
-      className="h-12 w-auto flex-shrink-0 drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(255,165,0,0.3)]"
+      className="h-12 w-12 flex-shrink-0 rounded-full object-cover drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(255,165,0,0.3)]"
       style={{
         filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))",
       }}
