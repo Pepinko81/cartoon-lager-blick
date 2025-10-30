@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { API_BASE } from "@/config/api";
 
 export const WarehouseView = () => {
+  const { t, i18n } = useTranslation();
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isAddRackModalOpen, setIsAddRackModalOpen] = useState(false);
   const [editingRackId, setEditingRackId] = useState<string | null>(null);
@@ -521,6 +523,18 @@ export const WarehouseView = () => {
                   3D
                 </Button>
               </div>
+              <select
+                aria-label="Language"
+                className="border border-border rounded-md px-2 py-1 text-sm bg-card"
+                value={i18n.language}
+                onChange={(e) => i18n.changeLanguage(e.target.value)}
+              >
+                {[
+                  "en","de","fr","es","it","bg","pl","nl","pt","ro","el","sv","da","no","fi","cs","sk","hu","hr","sl"
+                ].map((lng) => (
+                  <option key={lng} value={lng}>{lng.toUpperCase()}</option>
+                ))}
+              </select>
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -550,7 +564,7 @@ export const WarehouseView = () => {
               </DropdownMenu>
               <Button onClick={() => setIsAddRackModalOpen(true)} size="lg">
                 <Plus className="w-5 h-5 mr-2" />
-                Neues Regal
+                {t("addShelf")}
               </Button>
             </div>
           </div>
