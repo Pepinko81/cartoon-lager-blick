@@ -144,7 +144,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       </mesh>
       
       {/* Cross Braces */}
-      {rack.etagen.map((_, idx) => {
+      {(rack.etagen || []).map((_, idx) => {
         const yPos = totalEtagen / 2 - idx - 0.5;
         return (
           <group key={`brace-${idx}`}>
@@ -164,10 +164,16 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 };
 
 export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProps) => {
+  // Dynamische Kamera abhängig von Rack-Größe
+  const faecherCounts = (rack.etagen || []).map(e => (e.faecher?.length ?? 0));
+  const maxFaecher = Math.max(1, ...(faecherCounts.length ? faecherCounts : [0]));
+  const totalEtagen = Math.max(1, rack.etagen?.length ?? 0);
+  const cameraZ = Math.max(10, maxFaecher, totalEtagen) + 5;
   return (
     <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl relative">
       <Canvas
-        camera={{ position: [0, 0, 10], fov: 50 }}
+        key={rack.id}
+        camera={{ position: [0, 0, cameraZ], fov: 50 }}
         shadows
         gl={{ antialias: true }}
       >
