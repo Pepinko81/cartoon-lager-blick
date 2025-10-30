@@ -69,9 +69,10 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
 const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   const groupRef = useRef<THREE.Group>(null);
 
-  // Calculate dimensions
-  const maxFaecher = Math.max(...rack.etagen.map(e => e.faecher.length));
-  const totalEtagen = rack.etagen.length;
+  // Calculate robust dimensions (immer mindestens 1)
+  const faecherCounts = (rack.etagen || []).map(e => (e.faecher?.length ?? 0));
+  const maxFaecher = Math.max(1, ...(faecherCounts.length ? faecherCounts : [0]));
+  const totalEtagen = Math.max(1, rack.etagen?.length ?? 0);
 
   return (
     <group ref={groupRef}>
@@ -82,7 +83,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       </mesh>
 
       {/* Etagen and Fächer */}
-      {rack.etagen.map((etage, etageIndex) => {
+      {(rack.etagen || []).map((etage, etageIndex) => {
         const yPos = totalEtagen / 2 - etageIndex - 0.5;
         
         return (
@@ -105,7 +106,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
             </Text>
 
             {/* Fächer */}
-            {etage.faecher.map((fach, fachIndex) => {
+            {(etage.faecher || []).map((fach, fachIndex) => {
               const xPos = -maxFaecher / 2 + fachIndex + 0.5;
               return (
                 <SlotBox
