@@ -58,7 +58,6 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
         color="#1f2937"
         anchorX="center"
         anchorY="middle"
-        font="/fonts/inter-bold.woff"
       >
         {fach.bezeichnung}
       </Text>
