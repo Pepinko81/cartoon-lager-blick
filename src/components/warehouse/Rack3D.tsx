@@ -32,8 +32,8 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
   });
 
   const hasContent = fach.bilder.length > 0 || fach.beschreibung;
-  const color = hasContent ? "#f97316" : "#64748b"; // Orange if has content, gray otherwise
-  const emissive = hovered ? "#fbbf24" : "#000000";
+  const color = hasContent ? "#ff6b00" : "#d97706"; // Bright orange if has content, amber otherwise
+  const emissive = hovered ? "#ff8800" : "#000000";
 
   return (
     <group position={position}>
@@ -43,21 +43,22 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
       >
-        <boxGeometry args={[0.9, 0.9, 0.9]} />
+        <boxGeometry args={[0.85, 0.15, 0.85]} />
         <meshStandardMaterial
           color={color}
           emissive={emissive}
-          emissiveIntensity={hovered ? 0.5 : 0}
-          metalness={0.3}
-          roughness={0.7}
+          emissiveIntensity={hovered ? 0.3 : 0}
+          metalness={0.1}
+          roughness={0.8}
         />
       </mesh>
       <Text
-        position={[0, 0, 0.5]}
-        fontSize={0.15}
-        color="white"
+        position={[0, 0.1, 0.44]}
+        fontSize={0.12}
+        color="#1f2937"
         anchorX="center"
         anchorY="middle"
+        font="/fonts/inter-bold.woff"
       >
         {fach.bezeichnung}
       </Text>
@@ -74,10 +75,10 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 
   return (
     <group ref={groupRef}>
-      {/* Rack Frame - Back Panel */}
-      <mesh position={[0, 0, -0.5]}>
-        <boxGeometry args={[maxFaecher + 0.5, totalEtagen + 0.5, 0.1]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
+      {/* Rack Frame - Back Panel (Blue Metal) */}
+      <mesh position={[0, 0, -0.5]} castShadow receiveShadow>
+        <boxGeometry args={[maxFaecher + 0.5, totalEtagen + 0.5, 0.05]} />
+        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
       </mesh>
 
       {/* Etagen and Fächer */}
@@ -86,17 +87,17 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
         
         return (
           <group key={etage.id}>
-            {/* Etage Shelf */}
-            <mesh position={[0, yPos - 0.5, 0]}>
-              <boxGeometry args={[maxFaecher + 0.3, 0.1, 1]} />
-              <meshStandardMaterial color="#475569" metalness={0.5} roughness={0.5} />
+            {/* Etage Shelf (Orange) */}
+            <mesh position={[0, yPos - 0.58, 0]} castShadow receiveShadow>
+              <boxGeometry args={[maxFaecher + 0.3, 0.06, 0.95]} />
+              <meshStandardMaterial color="#ea580c" metalness={0.2} roughness={0.7} />
             </mesh>
 
             {/* Etage Label */}
             <Text
-              position={[-maxFaecher / 2 - 0.5, yPos, 0]}
-              fontSize={0.2}
-              color="#f1f5f9"
+              position={[-maxFaecher / 2 - 0.6, yPos - 0.5, 0]}
+              fontSize={0.18}
+              color="#1e40af"
               anchorX="right"
               anchorY="middle"
             >
@@ -121,15 +122,42 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
         );
       })}
 
-      {/* Vertical Supports */}
-      <mesh position={[-maxFaecher / 2 - 0.2, 0, -0.5]}>
-        <boxGeometry args={[0.1, totalEtagen + 1, 0.1]} />
-        <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.2} />
+      {/* Vertical Supports (Blue Metal) */}
+      <mesh position={[-maxFaecher / 2 - 0.25, 0, -0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
       </mesh>
-      <mesh position={[maxFaecher / 2 + 0.2, 0, -0.5]}>
-        <boxGeometry args={[0.1, totalEtagen + 1, 0.1]} />
-        <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.2} />
+      <mesh position={[maxFaecher / 2 + 0.25, 0, -0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
       </mesh>
+      
+      {/* Front Vertical Supports */}
+      <mesh position={[-maxFaecher / 2 - 0.25, 0, 0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
+      </mesh>
+      <mesh position={[maxFaecher / 2 + 0.25, 0, 0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
+      </mesh>
+      
+      {/* Cross Braces */}
+      {rack.etagen.map((_, idx) => {
+        const yPos = totalEtagen / 2 - idx - 0.5;
+        return (
+          <group key={`brace-${idx}`}>
+            <mesh position={[-maxFaecher / 2 - 0.25, yPos - 0.5, 0]} castShadow>
+              <boxGeometry args={[0.06, 0.06, 1]} />
+              <meshStandardMaterial color="#2563eb" metalness={0.9} roughness={0.3} />
+            </mesh>
+            <mesh position={[maxFaecher / 2 + 0.25, yPos - 0.5, 0]} castShadow>
+              <boxGeometry args={[0.06, 0.06, 1]} />
+              <meshStandardMaterial color="#2563eb" metalness={0.9} roughness={0.3} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 };
@@ -139,18 +167,37 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
     <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl relative">
       <Canvas
         camera={{ position: [0, 0, 10], fov: 50 }}
+        shadows
         gl={{ antialias: true }}
       >
-        <color attach="background" args={["#0f172a"]} />
+        <color attach="background" args={["#e5e7eb"]} />
+        
+        {/* Warehouse Floor */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]} receiveShadow>
+          <planeGeometry args={[50, 50]} />
+          <meshStandardMaterial color="#d1d5db" roughness={0.8} metalness={0.1} />
+        </mesh>
         
         {/* Lights */}
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
-        <directionalLight position={[-10, -10, -5]} intensity={0.5} />
-        <pointLight position={[0, 5, 5]} intensity={0.5} color="#fbbf24" />
+        <ambientLight intensity={0.6} />
+        <directionalLight 
+          position={[10, 15, 5]} 
+          intensity={1.2} 
+          castShadow 
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-far={50}
+          shadow-camera-left={-10}
+          shadow-camera-right={10}
+          shadow-camera-top={10}
+          shadow-camera-bottom={-10}
+        />
+        <directionalLight position={[-5, 10, -5]} intensity={0.4} />
+        <pointLight position={[0, 8, 8]} intensity={0.6} color="#ffffff" />
+        <hemisphereLight intensity={0.3} groundColor="#9ca3af" />
         
         {/* Rack Structure */}
-        <RackStructure rack={rack} onSlotClick={onSlotClick} />
+        <RackStructure rack={rack} onSlotClick={onSlotClick} onEdit={onEdit} onEtagenManage={onEtagenManage} />
         
         {/* Controls */}
         <OrbitControls
