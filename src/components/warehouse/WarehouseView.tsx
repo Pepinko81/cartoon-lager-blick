@@ -39,6 +39,7 @@ export const WarehouseView = () => {
   const [editingRackId, setEditingRackId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"2d" | "3d">("3d");
   const [selectedRackId, setSelectedRackId] = useState<string | null>(null);
+  const [etageManageRackId, setEtageManageRackId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { getAuthHeader, benutzer, logout } = useAuth();
   const navigate = useNavigate();
@@ -611,6 +612,8 @@ export const WarehouseView = () => {
                   <Rack3D
                     rack={rack}
                     onSlotClick={(slotId) => setSelectedSlotId(slotId)}
+                    onEdit={handleRackEdit}
+                    onEtagenManage={setEtageManageRackId}
                   />
                 </motion.div>
               ) : null;
@@ -654,6 +657,17 @@ export const WarehouseView = () => {
         onUpdate={handleRackUpdate}
         onDelete={handleRackDelete}
       />
+
+      {/* EtageModal */}
+      {etageManageRackId && (
+        <EditRackModal
+          rack={racks.find((r) => r.id === etageManageRackId) || null}
+          isOpen={!!etageManageRackId}
+          onClose={() => setEtageManageRackId(null)}
+          onUpdate={handleRackUpdate}
+          onDelete={handleRackDelete}
+        />
+      )}
     </div>
   );
 };
