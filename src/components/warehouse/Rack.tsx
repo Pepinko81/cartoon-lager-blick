@@ -22,6 +22,8 @@ interface RackProps {
 
 export const Rack = ({ rack, onSlotClick, onEdit, onEtagenChange }: RackProps) => {
   const [isEtageModalOpen, setIsEtageModalOpen] = useState(false);
+  // Etagen aufsteigend nach Nummer sortieren (1..N) – Anzeige unten nach oben (wie 3D)
+  const etagenSorted = [...rack.etagen].sort((a, b) => a.nummer - b.nummer);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -88,8 +90,9 @@ export const Rack = ({ rack, onSlotClick, onEdit, onEtagenChange }: RackProps) =
 
         {/* Rack Body - Etagen */}
         <div className="p-6 bg-gradient-to-br from-background to-muted/20">
-          <div className="space-y-6">
-            {rack.etagen.map((etage, etageIndex) => (
+          {/* flex-col-reverse sorgt dafür, dass Etage 1 unten erscheint (wie 3D Boden) */}
+          <div className="flex flex-col-reverse gap-6">
+            {etagenSorted.map((etage, etageIndex) => (
               <motion.div
                 key={etage.id}
                 initial={{ opacity: 0, y: 20 }}
