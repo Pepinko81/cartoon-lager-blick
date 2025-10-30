@@ -43,7 +43,7 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
       >
-        <boxGeometry args={[0.85, 0.15, 0.85]} />
+        <boxGeometry args={[0.85, 0.3, 0.85]} />
         <meshStandardMaterial
           color={color}
           emissive={emissive}
@@ -53,7 +53,7 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
         />
       </mesh>
       <Text
-        position={[0, 0.1, 0.44]}
+        position={[0, 0.25, 0.46]}
         fontSize={0.12}
         color="#1f2937"
         anchorX="center"
@@ -69,32 +69,31 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   const groupRef = useRef<THREE.Group>(null);
 
   // Calculate robust dimensions
-  const maxFaecher = Math.max(...rack.etagen.map(e => e.faecher.length), 1);
-  const totalEtagen = rack.etagen.length;
+  const maxFaecher = Math.max(...(rack.etagen || []).map(e => e.faecher.length), 1);
+  const totalEtagen = (rack.etagen || []).length;
 
   return (
     <group ref={groupRef}>
-      {/* Rack Frame - Back Panel (Blue Metal) */}
-      <mesh position={[0, 0, -0.5]} castShadow receiveShadow>
-        <boxGeometry args={[maxFaecher + 0.5, totalEtagen + 0.5, 0.05]} />
-        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
-      </mesh>
+      {/* Kein Rückwand-Panel: offener Regalrahmen */}
 
       {/* Etagen and Fächer */}
-      {rack.etagen.map((etage, etageIndex) => {
-        const yPos = totalEtagen / 2 - etageIndex - 0.5;
+      {(rack.etagen || []).map((etage, etageIndex) => {
+        const levelSpacing = 1.0;
+        const shelfThickness = 0.12;
+        const slotHeight = 0.3;
+        const levelY = etageIndex * levelSpacing; // vom Boden nach oben
         
         return (
           <group key={etage.id}>
-            {/* Etage Shelf (Orange) */}
-            <mesh position={[0, yPos - 0.58, 0]} castShadow receiveShadow>
-              <boxGeometry args={[maxFaecher + 0.3, 0.06, 0.95]} />
+            {/* Etagenboden (liegt auf Boden + Etagenabstand) */}
+            <mesh position={[0, levelY, 0]} castShadow receiveShadow>
+              <boxGeometry args={[maxFaecher + 0.3, shelfThickness, 0.95]} />
               <meshStandardMaterial color="#ea580c" metalness={0.2} roughness={0.7} />
             </mesh>
 
             {/* Etage Label */}
             <Text
-              position={[-maxFaecher / 2 - 0.6, yPos - 0.5, 0]}
+              position={[-maxFaecher / 2 - 0.6, levelY + 0.05, 0]}
               fontSize={0.18}
               color="#1e40af"
               anchorX="right"
@@ -104,8 +103,9 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
             </Text>
 
             {/* Fächer */}
-            {etage.faecher.map((fach, fachIndex) => {
+            {(etage.faecher || []).map((fach, fachIndex) => {
               const xPos = -maxFaecher / 2 + fachIndex + 0.5;
+              const yPos = levelY + (shelfThickness / 2) + (slotHeight / 2);
               return (
                 <SlotBox
                   key={fach.id}
@@ -121,13 +121,13 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
         );
       })}
 
-      {/* Vertical Supports (Blue Metal) */}
-      <mesh position={[-maxFaecher / 2 - 0.25, 0, -0.5]} castShadow receiveShadow>
-        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+      {/* Vertikale Stützen bis zur Gesamthöhe (stehen am Boden) */}
+      <mesh position={[-maxFaecher / 2 - 0.25, (totalEtagen - 1) * 0.5, -0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen + 0.5, 0.08]} />
         <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
       </mesh>
-      <mesh position={[maxFaecher / 2 + 0.25, 0, -0.5]} castShadow receiveShadow>
-        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+      <mesh position={[maxFaecher / 2 + 0.25, (totalEtagen - 1) * 0.5, -0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen + 0.5, 0.08]} />
         <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
       </mesh>
       
@@ -142,15 +142,16 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       </mesh>
       
       {/* Cross Braces */}
-      {rack.etagen.map((_, idx) => {
-        const yPos = totalEtagen / 2 - idx - 0.5;
+      {(rack.etagen || []).map((_, idx) => {
+        const levelSpacing = 1.0;
+        const yPos = idx * levelSpacing;
         return (
           <group key={`brace-${idx}`}>
-            <mesh position={[-maxFaecher / 2 - 0.25, yPos - 0.5, 0]} castShadow>
+            <mesh position={[-maxFaecher / 2 - 0.25, yPos - 0.06, 0]} castShadow>
               <boxGeometry args={[0.06, 0.06, 1]} />
               <meshStandardMaterial color="#2563eb" metalness={0.9} roughness={0.3} />
             </mesh>
-            <mesh position={[maxFaecher / 2 + 0.25, yPos - 0.5, 0]} castShadow>
+            <mesh position={[maxFaecher / 2 + 0.25, yPos - 0.06, 0]} castShadow>
               <boxGeometry args={[0.06, 0.06, 1]} />
               <meshStandardMaterial color="#2563eb" metalness={0.9} roughness={0.3} />
             </mesh>
@@ -170,14 +171,14 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
     <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl relative">
       <Canvas
         key={rack.id}
-        camera={{ position: [0, 0, cameraZ], fov: 50 }}
+        camera={{ position: [0, 1.5, cameraZ], fov: 50 }}
         shadows
         gl={{ antialias: true }}
       >
         <color attach="background" args={["#e5e7eb"]} />
         
         {/* Warehouse Floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, 0]} receiveShadow>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
           <planeGeometry args={[50, 50]} />
           <meshStandardMaterial color="#d1d5db" roughness={0.8} metalness={0.1} />
         </mesh>
