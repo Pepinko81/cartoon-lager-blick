@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const SplashScreen = () => {
   const [isVisible, setIsVisible] = useState(true);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -28,14 +29,24 @@ export const SplashScreen = () => {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col items-center justify-center"
           >
-            <img
-              src="/logo.png"
-              alt="HashMatrix Logo"
-              className="h-32 w-auto drop-shadow-lg dark:drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]"
-              style={{
-                filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))",
-              }}
-            />
+            {logoError ? (
+              <div className="text-center text-muted-foreground">
+                <p className="text-lg">HashMatrix</p>
+              </div>
+            ) : (
+              <img
+                src="/logo.png"
+                alt="HashMatrix Logo"
+                className="h-32 w-auto drop-shadow-lg dark:drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]"
+                style={{
+                  filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))",
+                }}
+                onError={() => {
+                  console.warn("Logo not found at /logo.png");
+                  setLogoError(true);
+                }}
+              />
+            )}
           </motion.div>
         </motion.div>
       )}

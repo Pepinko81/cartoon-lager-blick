@@ -34,6 +34,37 @@ import { Label } from "@/components/ui/label";
 
 import { API_BASE } from "@/config/api";
 
+const LogoImage = () => {
+  const [imageError, setImageError] = useState(false);
+
+  if (imageError) {
+    return (
+      <motion.div
+        animate={{ rotate: [0, 5, -5, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        className="flex-shrink-0"
+      >
+        <WarehouseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
+      </motion.div>
+    );
+  }
+
+  return (
+    <img
+      src="/logo.png"
+      alt="HashMatrix Logo"
+      className="h-12 w-auto flex-shrink-0 drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(255,165,0,0.3)]"
+      style={{
+        filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))",
+      }}
+      onError={() => {
+        console.warn("Logo not found at /logo.png - falling back to warehouse icon");
+        setImageError(true);
+      }}
+    />
+  );
+};
+
 export const WarehouseView = () => {
   const { t, i18n } = useTranslation();
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -444,14 +475,7 @@ export const WarehouseView = () => {
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <img
-                src="/logo.png"
-                alt="HashMatrix Logo"
-                className="h-12 w-auto flex-shrink-0 drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(255,165,0,0.3)]"
-                style={{
-                  filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))",
-                }}
-              />
+              <LogoImage />
               <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-foreground truncate">
                 Lagerverwaltung
               </h1>
