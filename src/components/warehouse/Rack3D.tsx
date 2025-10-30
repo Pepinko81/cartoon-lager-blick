@@ -69,10 +69,9 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
 const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   const groupRef = useRef<THREE.Group>(null);
 
-  // Calculate robust dimensions (immer mindestens 1)
-  const faecherCounts = (rack.etagen || []).map(e => (e.faecher?.length ?? 0));
-  const maxFaecher = Math.max(1, ...(faecherCounts.length ? faecherCounts : [0]));
-  const totalEtagen = Math.max(1, rack.etagen?.length ?? 0);
+  // Calculate robust dimensions
+  const maxFaecher = Math.max(...rack.etagen.map(e => e.faecher.length), 1);
+  const totalEtagen = rack.etagen.length;
 
   return (
     <group ref={groupRef}>
@@ -83,7 +82,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       </mesh>
 
       {/* Etagen and Fächer */}
-      {(rack.etagen || []).map((etage, etageIndex) => {
+      {rack.etagen.map((etage, etageIndex) => {
         const yPos = totalEtagen / 2 - etageIndex - 0.5;
         
         return (
@@ -106,7 +105,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
             </Text>
 
             {/* Fächer */}
-            {(etage.faecher || []).map((fach, fachIndex) => {
+            {etage.faecher.map((fach, fachIndex) => {
               const xPos = -maxFaecher / 2 + fachIndex + 0.5;
               return (
                 <SlotBox
@@ -144,7 +143,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       </mesh>
       
       {/* Cross Braces */}
-      {(rack.etagen || []).map((_, idx) => {
+      {rack.etagen.map((_, idx) => {
         const yPos = totalEtagen / 2 - idx - 0.5;
         return (
           <group key={`brace-${idx}`}>
@@ -164,10 +163,9 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 };
 
 export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProps) => {
-  // Dynamische Kamera abhängig von Rack-Größe
-  const faecherCounts = (rack.etagen || []).map(e => (e.faecher?.length ?? 0));
-  const maxFaecher = Math.max(1, ...(faecherCounts.length ? faecherCounts : [0]));
-  const totalEtagen = Math.max(1, rack.etagen?.length ?? 0);
+  // Dynamic camera based on rack size
+  const maxFaecher = Math.max(...rack.etagen.map(e => e.faecher.length), 1);
+  const totalEtagen = rack.etagen.length;
   const cameraZ = Math.max(10, maxFaecher, totalEtagen) + 5;
   return (
     <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl relative">
