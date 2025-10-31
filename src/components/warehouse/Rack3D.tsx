@@ -139,8 +139,8 @@ const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
 
   return (
     <group>
-      {/* Gewölbte Hintergrundwand */}
-      <mesh position={[0, 5, -15]} receiveShadow>
+      {/* Gewölbte Hintergrundwand - Zentriert hinter dem Regal */}
+      <mesh position={[0, 5, -8]} receiveShadow>
         <cylinderGeometry args={[20, 20, 15, 32, 1, true, 0, Math.PI]} />
         <meshStandardMaterial
           color={branding.background.color}
@@ -150,9 +150,9 @@ const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
         />
       </mesh>
 
-      {/* Logo-Plane (falls Logo vorhanden) */}
+      {/* Logo-Plane (falls Logo vorhanden) - Zentriert hinter dem Regal */}
       {logoTexture && (
-        <mesh position={branding.background.logoPosition} castShadow>
+        <mesh position={[0, 5, -7.5]} castShadow>
           <planeGeometry args={[branding.background.logoScale, branding.background.logoScale]} />
           <meshStandardMaterial
             map={logoTexture}
@@ -174,6 +174,7 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   // Calculate robust dimensions
   const maxFaecher = Math.max(...(rack.etagen || []).map(e => e.faecher.length), 1);
   const totalEtagen = (rack.etagen || []).length;
+  const levelSpacing = 1.0; // Константа за разстоянието между етажите
 
   return (
     <group ref={groupRef}>
@@ -181,7 +182,6 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 
       {/* Etagen and Fächer */}
       {(rack.etagen || []).map((etage, etageIndex) => {
-        const levelSpacing = 1.0;
         const shelfThickness = 0.12;
         const slotHeight = 0.3;
         const levelY = etageIndex * levelSpacing; // vom Boden nach oben
@@ -224,29 +224,28 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
         );
       })}
 
-      {/* Vertikale Stützen bis zur Gesamthöhe (stehen am Boden) */}
-      <mesh position={[-maxFaecher / 2 - 0.25, (totalEtagen - 1) * 0.5, -0.5]} castShadow receiveShadow>
-        <boxGeometry args={[0.08, totalEtagen + 0.5, 0.08]} />
+      {/* Hintere vertikale Stützen (Back Posts) - на същата x позиция, зад регала */}
+      <mesh position={[-maxFaecher / 2 - 0.25, (totalEtagen * 0.5), -0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen * levelSpacing + 0.2, 0.08]} />
         <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
-      <mesh position={[maxFaecher / 2 + 0.25, (totalEtagen - 1) * 0.5, -0.5]} castShadow receiveShadow>
-        <boxGeometry args={[0.08, totalEtagen + 0.5, 0.08]} />
+      <mesh position={[maxFaecher / 2 + 0.25, (totalEtagen * 0.5), -0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen * levelSpacing + 0.2, 0.08]} />
         <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
       
-      {/* Front Vertical Supports */}
-      <mesh position={[-maxFaecher / 2 - 0.25, 0, 0.5]} castShadow receiveShadow>
-        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+      {/* Предни vertikale Stützen (Front Posts) - на същите x позиции като задните, но напред */}
+      <mesh position={[-maxFaecher / 2 - 0.25, (totalEtagen * 0.5), 0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen * levelSpacing + 0.2, 0.08]} />
         <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
-      <mesh position={[maxFaecher / 2 + 0.25, 0, 0.5]} castShadow receiveShadow>
-        <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
+      <mesh position={[maxFaecher / 2 + 0.25, (totalEtagen * 0.5), 0.5]} castShadow receiveShadow>
+        <boxGeometry args={[0.08, totalEtagen * levelSpacing + 0.2, 0.08]} />
         <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
       
       {/* Cross Braces */}
       {(rack.etagen || []).map((_, idx) => {
-        const levelSpacing = 1.0;
         const yPos = idx * levelSpacing;
         return (
           <group key={`brace-${idx}`}>
