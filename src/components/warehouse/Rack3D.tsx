@@ -196,13 +196,14 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
             </mesh>
 
             {/* Etage Label - От ляво, на дъното на етажа, правилно ориентиран спрямо завъртяния регал */}
+            {/* Регалът е завъртян на -90°, така че текстът трябва да компенсира и да гледа към камерата */}
             <Text
               position={[-maxFaecher / 2 - 0.6, levelY, 0]}
               fontSize={0.18}
               color="#7ca3d9"
               anchorX="right"
               anchorY="bottom"
-              rotation={[0, Math.PI / 2, 0]}
+              rotation={[0, Math.PI, 0]}
             >
               {etage.name || `E${etage.nummer}`}
             </Text>
