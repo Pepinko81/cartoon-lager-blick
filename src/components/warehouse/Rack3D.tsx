@@ -32,8 +32,8 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
   });
 
   const hasContent = fach.bilder.length > 0 || fach.beschreibung;
-  const color = hasContent ? "#ff6b00" : "#d97706"; // Bright orange if has content, amber otherwise
-  const emissive = hovered ? "#ff8800" : "#000000";
+  const color = hasContent ? "#ffb380" : "#ffd4b3"; // Pastel orange tones
+  const emissive = hovered ? "#ffcc99" : "#000000";
 
   return (
     <group position={position}>
@@ -47,15 +47,15 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
         <meshStandardMaterial
           color={color}
           emissive={emissive}
-          emissiveIntensity={hovered ? 0.3 : 0}
-          metalness={0.1}
-          roughness={0.8}
+          emissiveIntensity={hovered ? 0.4 : 0}
+          metalness={0.3}
+          roughness={0.4}
         />
       </mesh>
       <Text
         position={[0, 0.25, 0.46]}
         fontSize={0.12}
-        color="#1f2937"
+        color="#4a5568"
         anchorX="center"
         anchorY="middle"
       >
@@ -88,14 +88,14 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
             {/* Etagenboden (liegt auf Boden + Etagenabstand) */}
             <mesh position={[0, levelY, 0]} castShadow receiveShadow>
               <boxGeometry args={[maxFaecher + 0.3, shelfThickness, 0.95]} />
-              <meshStandardMaterial color="#ea580c" metalness={0.2} roughness={0.7} />
+              <meshStandardMaterial color="#ffb380" metalness={0.4} roughness={0.3} />
             </mesh>
 
             {/* Etage Label */}
             <Text
               position={[-maxFaecher / 2 - 0.6, levelY + 0.05, 0]}
               fontSize={0.18}
-              color="#1e40af"
+              color="#7ca3d9"
               anchorX="right"
               anchorY="middle"
             >
@@ -124,21 +124,21 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       {/* Vertikale Stützen bis zur Gesamthöhe (stehen am Boden) */}
       <mesh position={[-maxFaecher / 2 - 0.25, (totalEtagen - 1) * 0.5, -0.5]} castShadow receiveShadow>
         <boxGeometry args={[0.08, totalEtagen + 0.5, 0.08]} />
-        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
+        <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
       <mesh position={[maxFaecher / 2 + 0.25, (totalEtagen - 1) * 0.5, -0.5]} castShadow receiveShadow>
         <boxGeometry args={[0.08, totalEtagen + 0.5, 0.08]} />
-        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
+        <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
       
       {/* Front Vertical Supports */}
       <mesh position={[-maxFaecher / 2 - 0.25, 0, 0.5]} castShadow receiveShadow>
         <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
-        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
+        <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
       <mesh position={[maxFaecher / 2 + 0.25, 0, 0.5]} castShadow receiveShadow>
         <boxGeometry args={[0.08, totalEtagen + 1, 0.08]} />
-        <meshStandardMaterial color="#1e40af" metalness={0.9} roughness={0.3} />
+        <meshStandardMaterial color="#7ca3d9" metalness={0.6} roughness={0.2} />
       </mesh>
       
       {/* Cross Braces */}
@@ -149,11 +149,11 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
           <group key={`brace-${idx}`}>
             <mesh position={[-maxFaecher / 2 - 0.25, yPos - 0.06, 0]} castShadow>
               <boxGeometry args={[0.06, 0.06, 1]} />
-              <meshStandardMaterial color="#2563eb" metalness={0.9} roughness={0.3} />
+              <meshStandardMaterial color="#a3c4e6" metalness={0.6} roughness={0.2} />
             </mesh>
             <mesh position={[maxFaecher / 2 + 0.25, yPos - 0.06, 0]} castShadow>
               <boxGeometry args={[0.06, 0.06, 1]} />
-              <meshStandardMaterial color="#2563eb" metalness={0.9} roughness={0.3} />
+              <meshStandardMaterial color="#a3c4e6" metalness={0.6} roughness={0.2} />
             </mesh>
           </group>
         );
@@ -175,19 +175,19 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
         shadows
         gl={{ antialias: true }}
       >
-        <color attach="background" args={["#e5e7eb"]} />
+        <color attach="background" args={["#f0f4f8"]} />
         
         {/* Warehouse Floor */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
           <planeGeometry args={[50, 50]} />
-          <meshStandardMaterial color="#d1d5db" roughness={0.8} metalness={0.1} />
+          <meshStandardMaterial color="#e8eef5" roughness={0.6} metalness={0.05} />
         </mesh>
         
-        {/* Lights */}
-        <ambientLight intensity={0.6} />
+        {/* Lights - Soft and diffused for cartoon look */}
+        <ambientLight intensity={0.8} />
         <directionalLight 
           position={[10, 15, 5]} 
-          intensity={1.2} 
+          intensity={0.9} 
           castShadow 
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
@@ -196,10 +196,11 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
           shadow-camera-right={10}
           shadow-camera-top={10}
           shadow-camera-bottom={-10}
+          shadow-bias={-0.0001}
         />
-        <directionalLight position={[-5, 10, -5]} intensity={0.4} />
-        <pointLight position={[0, 8, 8]} intensity={0.6} color="#ffffff" />
-        <hemisphereLight intensity={0.3} groundColor="#9ca3af" />
+        <directionalLight position={[-5, 10, -5]} intensity={0.3} color="#b8d4f1" />
+        <pointLight position={[0, 8, 8]} intensity={0.5} color="#fff5e6" />
+        <hemisphereLight intensity={0.5} color="#d4e6f5" groundColor="#c2d9ed" />
         
         {/* Rack Structure */}
         <RackStructure rack={rack} onSlotClick={onSlotClick} onEdit={onEdit} onEtagenManage={onEtagenManage} />
