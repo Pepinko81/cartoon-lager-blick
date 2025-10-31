@@ -177,8 +177,9 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   const levelSpacing = 1.0; // Константа за разстоянието между етажите
 
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} rotation={[0, Math.PI / 2, 0]}>
       {/* Kein Rückwand-Panel: offener Regalrahmen */}
+      {/* Regal um 90 Grad gedreht (rotation auf Y-Achse) */}
 
       {/* Etagen and Fächer */}
       {(rack.etagen || []).map((etage, etageIndex) => {
