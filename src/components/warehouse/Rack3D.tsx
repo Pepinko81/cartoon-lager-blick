@@ -177,9 +177,9 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   const levelSpacing = 1.0; // Константа за разстоянието между етажите
 
   return (
-    <group ref={groupRef} rotation={[0, Math.PI / 2, 0]}>
+    <group ref={groupRef} rotation={[0, -Math.PI / 2, 0]}>
       {/* Kein Rückwand-Panel: offener Regalrahmen */}
-      {/* Regal um 90 Grad gedreht (rotation auf Y-Achse) */}
+      {/* Regal um 270 Grad gedreht (rotation auf Y-Achse) - общо 270° от началната позиция */}
 
       {/* Etagen and Fächer */}
       {(rack.etagen || []).map((etage, etageIndex) => {
@@ -195,13 +195,14 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
               <meshStandardMaterial color="#ffb380" metalness={0.4} roughness={0.3} />
             </mesh>
 
-            {/* Etage Label */}
+            {/* Etage Label - Завъртян с регала */}
             <Text
               position={[-maxFaecher / 2 - 0.6, levelY + 0.05, 0]}
               fontSize={0.18}
               color="#7ca3d9"
               anchorX="right"
               anchorY="middle"
+              rotation={[0, -Math.PI / 2, 0]}
             >
               {etage.name || `E${etage.nummer}`}
             </Text>
@@ -288,7 +289,7 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
     <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl relative">
       <Canvas
         key={rack.id}
-        camera={{ position: [0, 1.5, cameraZ], fov: 50 }}
+        camera={{ position: [-cameraZ, 1.5, 0], fov: 50 }}
         shadows
         gl={{ antialias: true }}
       >
