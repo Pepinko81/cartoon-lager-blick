@@ -1,16 +1,18 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Text } from "@react-three/drei";
 import * as THREE from "three";
 import { Rack as RackType, Fach } from "@/types/warehouse";
 import { exportRackAsGLTF, buildExportableScene } from "@/utils/sceneExporter";
 import { toast } from "sonner";
+import { BrandingConfig, loadBrandingConfig } from "@/config/branding";
 
 interface Rack3DProps {
   rack: RackType;
   onSlotClick: (slotId: string) => void;
   onEdit: (rackId: string) => void;
   onEtagenManage: (rackId: string) => void;
+  brandingPreset?: string; // Optional: Name des Branding-Presets
 }
 
 interface SlotBoxProps {
@@ -63,6 +65,104 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
       >
         {fach.bezeichnung}
       </Text>
+    </group>
+  );
+};
+
+interface BrandedFloorProps {
+  branding: BrandingConfig;
+}
+
+const BrandedFloor = ({ branding }: BrandedFloorProps) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+
+  useEffect(() => {
+    if (branding.floor.textureUrl) {
+      const loader = new THREE.TextureLoader();
+      loader.load(
+        branding.floor.textureUrl,
+        (loadedTexture) => {
+          loadedTexture.wrapS = THREE.RepeatWrapping;
+          loadedTexture.wrapT = THREE.RepeatWrapping;
+          loadedTexture.repeat.set(10, 10);
+          setTexture(loadedTexture);
+        },
+        undefined,
+        (error) => {
+          console.error("Fehler beim Laden der Boden-Textur:", error);
+        }
+      );
+    }
+  }, [branding.floor.textureUrl]);
+
+  return (
+    <mesh 
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]} 
+      position={[0, 0, 0]} 
+      receiveShadow
+    >
+      <planeGeometry args={[50, 50]} />
+      <meshStandardMaterial
+        color={branding.floor.color}
+        map={texture}
+        roughness={branding.floor.roughness}
+        metalness={branding.floor.metalness}
+      />
+    </mesh>
+  );
+};
+
+interface BrandedBackgroundProps {
+  branding: BrandingConfig;
+}
+
+const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
+  const [logoTexture, setLogoTexture] = useState<THREE.Texture | null>(null);
+
+  useEffect(() => {
+    if (branding.background.logoUrl) {
+      const loader = new THREE.TextureLoader();
+      loader.load(
+        branding.background.logoUrl,
+        (loadedTexture) => {
+          setLogoTexture(loadedTexture);
+        },
+        undefined,
+        (error) => {
+          console.error("Fehler beim Laden des Logos:", error);
+        }
+      );
+    }
+  }, [branding.background.logoUrl]);
+
+  return (
+    <group>
+      {/* Gewölbte Hintergrundwand */}
+      <mesh position={[0, 5, -15]} receiveShadow>
+        <cylinderGeometry args={[20, 20, 15, 32, 1, true, 0, Math.PI]} />
+        <meshStandardMaterial
+          color={branding.background.color}
+          side={THREE.BackSide}
+          roughness={0.7}
+          metalness={0.1}
+        />
+      </mesh>
+
+      {/* Logo-Plane (falls Logo vorhanden) */}
+      {logoTexture && (
+        <mesh position={branding.background.logoPosition} castShadow>
+          <planeGeometry args={[branding.background.logoScale, branding.background.logoScale]} />
+          <meshStandardMaterial
+            map={logoTexture}
+            transparent={true}
+            opacity={0.9}
+            roughness={0.5}
+            metalness={0.1}
+          />
+        </mesh>
+      )}
     </group>
   );
 };
@@ -165,11 +265,19 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   );
 };
 
-export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProps) => {
+export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPreset = "default" }: Rack3DProps) => {
+  const [branding, setBranding] = useState<BrandingConfig>(() => loadBrandingConfig(brandingPreset));
+
   const handleExport = (format: 'glb' | 'gltf') => {
-    const exportScene = buildExportableScene(rack);
+    const exportScene = buildExportableScene(rack, branding);
     exportRackAsGLTF(exportScene, rack, format);
     toast.success(`${rack.name}.${format} wurde heruntergeladen`);
+  };
+
+  const handleBrandingChange = (preset: string) => {
+    const newBranding = loadBrandingConfig(preset);
+    setBranding(newBranding);
+    toast.success(`Branding zu "${preset}" gewechselt`);
   };
 
   // Dynamic camera based on rack size
@@ -184,13 +292,13 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
         shadows
         gl={{ antialias: true }}
       >
-        <color attach="background" args={["#f0f4f8"]} />
+        <color attach="background" args={[branding.background.color]} />
         
-        {/* Warehouse Floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-          <planeGeometry args={[50, 50]} />
-          <meshStandardMaterial color="#e8eef5" roughness={0.6} metalness={0.05} />
-        </mesh>
+        {/* Branded Background */}
+        <BrandedBackground branding={branding} />
+        
+        {/* Branded Floor */}
+        <BrandedFloor branding={branding} />
         
         {/* Lights - Soft and diffused for cartoon look */}
         <ambientLight intensity={0.8} />
@@ -225,6 +333,44 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
       </Canvas>
       {/* Overlay Buttons outside Canvas for persistency */}
       <div className="absolute top-4 right-4 flex gap-2 z-50 pointer-events-auto">
+        {/* Branding Selector */}
+        <div className="relative group">
+          <button
+            className="px-2 py-1 text-xs rounded bg-card hover:bg-accent border border-border shadow"
+          >
+            <span className="inline-flex items-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}><path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0a4 4 0 004-4v-4a2 2 0 012-2h4a2 2 0 012 2v4a4 4 0 01-4 4h-8z" /></svg>
+              Branding
+            </span>
+          </button>
+          <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+            <button
+              onClick={() => handleBrandingChange('default')}
+              className="w-full px-3 py-2 text-xs text-left hover:bg-accent"
+            >
+              Standard
+            </button>
+            <button
+              onClick={() => handleBrandingChange('tech-blue')}
+              className="w-full px-3 py-2 text-xs text-left hover:bg-accent"
+            >
+              Tech Blue
+            </button>
+            <button
+              onClick={() => handleBrandingChange('modern-dark')}
+              className="w-full px-3 py-2 text-xs text-left hover:bg-accent"
+            >
+              Modern Dark
+            </button>
+            <button
+              onClick={() => handleBrandingChange('eco-green')}
+              className="w-full px-3 py-2 text-xs text-left hover:bg-accent"
+            >
+              Eco Green
+            </button>
+          </div>
+        </div>
+        
         <button
           onClick={() => onEdit(rack.id)}
           className="px-2 py-1 text-xs rounded bg-card hover:bg-accent border border-border shadow"

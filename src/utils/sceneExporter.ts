@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { Rack } from "@/types/warehouse";
+import { BrandingConfig, defaultBranding } from "@/config/branding";
 
-export const exportRackAsGLTF = (scene: THREE.Group, rack: Rack, format: 'glb' | 'gltf' = 'glb') => {
+export const exportRackAsGLTF = (scene: THREE.Scene, rack: Rack, format: 'glb' | 'gltf' = 'glb') => {
   const exporter = new GLTFExporter();
   
   const options = {
@@ -55,7 +56,35 @@ const saveString = (text: string, filename: string) => {
   document.body.removeChild(link);
 };
 
-export const buildExportableScene = (rack: Rack): THREE.Group => {
+export const buildExportableScene = (rack: Rack, branding: BrandingConfig = defaultBranding): THREE.Scene => {
+  const scene = new THREE.Scene();
+  scene.name = "WarehouseScene";
+
+  // Add branded floor
+  const floorGeometry = new THREE.PlaneGeometry(50, 50);
+  const floorMaterial = new THREE.MeshStandardMaterial({
+    color: branding.floor.color,
+    roughness: branding.floor.roughness,
+    metalness: branding.floor.metalness,
+  });
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  floor.name = "Floor";
+  scene.add(floor);
+
+  // Add branded background wall
+  const backgroundGeometry = new THREE.CylinderGeometry(20, 20, 15, 32, 1, true, 0, Math.PI);
+  const backgroundMaterial = new THREE.MeshStandardMaterial({
+    color: branding.background.color,
+    side: THREE.BackSide,
+    roughness: 0.7,
+    metalness: 0.1,
+  });
+  const background = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+  background.position.set(0, 5, -15);
+  background.name = "Background";
+  scene.add(background);
+
   const rackGroup = new THREE.Group();
   rackGroup.name = rack.name || `Regal_${rack.id}`;
 
@@ -167,10 +196,13 @@ export const buildExportableScene = (rack: Rack): THREE.Group => {
     rackGroup.add(etageGroup);
   });
 
-  // Center the scene at origin
+  // Add rack group to scene
+  scene.add(rackGroup);
+
+  // Center the rack at origin (floor and background stay in place)
   const box = new THREE.Box3().setFromObject(rackGroup);
   const center = box.getCenter(new THREE.Vector3());
   rackGroup.position.sub(center);
 
-  return rackGroup;
+  return scene;
 };
