@@ -139,8 +139,8 @@ const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
 
   return (
     <group>
-      {/* Gewölbte Hintergrundwand - Zentriert hinter dem Regal */}
-      <mesh position={[0, 5, -8]} receiveShadow>
+      {/* Gewölbte Hintergrundwand - Точно зад регала */}
+      <mesh position={[0, 5, -6]} receiveShadow>
         <cylinderGeometry args={[20, 20, 15, 32, 1, true, 0, Math.PI]} />
         <meshStandardMaterial
           color={branding.background.color}
@@ -150,9 +150,9 @@ const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
         />
       </mesh>
 
-      {/* Logo-Plane (falls Logo vorhanden) - Zentriert hinter dem Regal */}
+      {/* Logo-Plane (falls Logo vorhanden) - Точно зад регала */}
       {logoTexture && (
-        <mesh position={[0, 5, -7.5]} castShadow>
+        <mesh position={[0, 5, -5.8]} castShadow>
           <planeGeometry args={[branding.background.logoScale, branding.background.logoScale]} />
           <meshStandardMaterial
             map={logoTexture}
@@ -195,14 +195,14 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
               <meshStandardMaterial color="#ffb380" metalness={0.4} roughness={0.3} />
             </mesh>
 
-            {/* Etage Label - Завъртян с регала */}
+            {/* Etage Label - Завъртян да гледа към камерата */}
             <Text
               position={[-maxFaecher / 2 - 0.6, levelY + 0.05, 0]}
               fontSize={0.18}
               color="#7ca3d9"
               anchorX="right"
               anchorY="middle"
-              rotation={[0, -Math.PI / 2, 0]}
+              rotation={[0, Math.PI, 0]}
             >
               {etage.name || `E${etage.nummer}`}
             </Text>
@@ -304,7 +304,7 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
         {/* Lights - Soft and diffused for cartoon look */}
         <ambientLight intensity={0.8} />
         <directionalLight 
-          position={[10, 15, 5]} 
+          position={[-10, 15, -5]} 
           intensity={0.9} 
           castShadow 
           shadow-mapSize-width={2048}
@@ -316,8 +316,8 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
           shadow-camera-bottom={-10}
           shadow-bias={-0.0001}
         />
-        <directionalLight position={[-5, 10, -5]} intensity={0.3} color="#b8d4f1" />
-        <pointLight position={[0, 8, 8]} intensity={0.5} color="#fff5e6" />
+        <directionalLight position={[5, 10, 5]} intensity={0.3} color="#b8d4f1" />
+        <pointLight position={[0, 8, -8]} intensity={0.5} color="#fff5e6" />
         <hemisphereLight intensity={0.5} color="#d4e6f5" groundColor="#c2d9ed" />
         
         {/* Rack Structure */}
