@@ -195,14 +195,14 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
               <meshStandardMaterial color="#ffb380" metalness={0.4} roughness={0.3} />
             </mesh>
 
-            {/* Etage Label - От ляво, на дъното на етажа, завъртян на -180° */}
+            {/* Etage Label - От ляво, на дъното на етажа, правилно завъртян */}
             <Text
               position={[-maxFaecher / 2 - 0.6, levelY, 0]}
               fontSize={0.18}
               color="#7ca3d9"
               anchorX="right"
               anchorY="bottom"
-              rotation={[0, -Math.PI, 0]}
+              rotation={[0, Math.PI / 2, 0]}
             >
               {etage.name || `E${etage.nummer}`}
             </Text>
@@ -281,15 +281,18 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
     toast.success(`Branding zu "${preset}" gewechselt`);
   };
 
-  // Dynamic camera based on rack size
+  // Dynamic camera based on rack size - центрирана вертикално и хоризонтално
   const maxFaecher = Math.max(...rack.etagen.map(e => e.faecher.length), 1);
   const totalEtagen = rack.etagen.length;
-  const cameraZ = Math.max(10, maxFaecher, totalEtagen) + 5;
+  const levelSpacing = 1.0;
+  const rackHeight = totalEtagen * levelSpacing;
+  const cameraDistance = Math.max(12, maxFaecher * 1.5, rackHeight * 1.5);
+  const cameraY = rackHeight / 2 + 1; // Центрирана вертикално на средата на регала
   return (
     <div className="w-full h-[600px] rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-border shadow-2xl relative">
       <Canvas
         key={rack.id}
-        camera={{ position: [-cameraZ, 1.5, 0], fov: 50 }}
+        camera={{ position: [-cameraDistance, cameraY, 0], fov: 50 }}
         shadows
         gl={{ antialias: true }}
       >
