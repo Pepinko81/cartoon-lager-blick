@@ -195,14 +195,14 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
               <meshStandardMaterial color="#ffb380" metalness={0.4} roughness={0.3} />
             </mesh>
 
-            {/* Etage Label - Завъртян да гледа към камерата */}
+            {/* Etage Label - От ляво, на дъното на етажа, завъртян на -180° */}
             <Text
-              position={[-maxFaecher / 2 - 0.6, levelY + 0.05, 0]}
+              position={[-maxFaecher / 2 - 0.6, levelY, 0]}
               fontSize={0.18}
               color="#7ca3d9"
               anchorX="right"
-              anchorY="middle"
-              rotation={[0, Math.PI, 0]}
+              anchorY="bottom"
+              rotation={[0, -Math.PI, 0]}
             >
               {etage.name || `E${etage.nummer}`}
             </Text>
