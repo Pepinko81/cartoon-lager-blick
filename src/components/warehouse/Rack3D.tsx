@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Text } from "@react-three/drei";
 import * as THREE from "three";
 import { Rack as RackType, Fach } from "@/types/warehouse";
+import { exportRackAsGLTF, buildExportableScene } from "@/utils/sceneExporter";
+import { toast } from "sonner";
 
 interface Rack3DProps {
   rack: RackType;
@@ -67,6 +69,7 @@ const SlotBox = ({ position, fach, onClick, etageIndex, fachIndex }: SlotBoxProp
 
 const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
   const groupRef = useRef<THREE.Group>(null);
+  const { scene } = useThree();
 
   // Calculate robust dimensions
   const maxFaecher = Math.max(...(rack.etagen || []).map(e => e.faecher.length), 1);
@@ -163,6 +166,12 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 };
 
 export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProps) => {
+  const handleExport = (format: 'glb' | 'gltf') => {
+    const exportScene = buildExportableScene(rack);
+    exportRackAsGLTF(exportScene, rack, format);
+    toast.success(`${rack.name}.${format} wurde heruntergeladen`);
+  };
+
   // Dynamic camera based on rack size
   const maxFaecher = Math.max(...rack.etagen.map(e => e.faecher.length), 1);
   const totalEtagen = rack.etagen.length;
@@ -234,6 +243,30 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage }: Rack3DProp
             Etagen verwalten
           </span>
         </button>
+        <div className="relative group">
+          <button
+            className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 border border-border shadow"
+          >
+            <span className="inline-flex items-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
+              3D Export
+            </span>
+          </button>
+          <div className="absolute right-0 mt-1 w-32 bg-card border border-border rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+            <button
+              onClick={() => handleExport('glb')}
+              className="w-full px-3 py-2 text-xs text-left hover:bg-accent rounded-t"
+            >
+              Als .GLB
+            </button>
+            <button
+              onClick={() => handleExport('gltf')}
+              className="w-full px-3 py-2 text-xs text-left hover:bg-accent rounded-b"
+            >
+              Als .GLTF
+            </button>
+          </div>
+        </div>
       </div>
       {/* Rack Info Overlay */}
       <div className="absolute top-24 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border shadow-lg z-40">
