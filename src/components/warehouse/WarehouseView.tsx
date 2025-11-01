@@ -75,16 +75,21 @@ export const WarehouseView = () => {
   const [selectedRackId, setSelectedRackId] = useState<string | null>(null);
   const [etageManageRackId, setEtageManageRackId] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { getAuthHeader, benutzer, logout } = useAuth();
+  const { getAuthHeader, benutzer, logout, token, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch racks
+  // Fetch racks - only when authenticated and token is available
   const { data: racks = [], isLoading, refetch } = useQuery<RackType[]>({
-    queryKey: ["racks"],
+    queryKey: ["racks", token], // Include token in query key to refetch when token changes
     queryFn: async () => {
+      const authHeaders = getAuthHeader();
+      if (!authHeaders.Authorization) {
+        throw new Error("No authentication token available");
+      }
+      
       const response = await fetch(`${API_BASE}/regale`, {
         headers: {
-          ...getAuthHeader(),
+          ...authHeaders,
         },
       });
       if (!response.ok) {
@@ -96,6 +101,8 @@ export const WarehouseView = () => {
       }
       return response.json();
     },
+    enabled: !!token && isAuthenticated, // Only fetch when we have a token and are authenticated
+    retry: false,
   });
 
   // Add rack mutation
