@@ -278,10 +278,16 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         ctx.strokeStyle = drawingColor;
         ctx.lineWidth = drawingLineWidth;
         ctx.lineCap = "round";
+        if (drawingMode === "pencil" || drawingMode === "erase") {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+        }
       }
-    }
-    
-    if (canvasContext && drawingStart) {
+    } else if (canvasContext) {
+      // Canvas already exists, update context settings
+      canvasContext.strokeStyle = drawingColor;
+      canvasContext.lineWidth = drawingLineWidth;
+      canvasContext.lineCap = "round";
       if (drawingMode === "pencil" || drawingMode === "erase") {
         canvasContext.beginPath();
         canvasContext.moveTo(x, y);
