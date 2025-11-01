@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Warehouse as WarehouseIcon, LogOut, Grid3x3, Box } from "lucide-react";
+import { Plus, Warehouse as WarehouseIcon, LogOut, Grid3x3, Box, Map } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Rack as RackType, Slot as SlotType, AddRackData } from "@/types/warehouse";
 import { Rack } from "./Rack";
 import { Rack3D } from "./Rack3D";
+import { WarehouseMap } from "./WarehouseMap";
 import { SlotModal } from "./SlotModal";
 import { AddRackModal } from "./AddRackModal";
 import { EditRackModal } from "./EditRackModal";
@@ -70,7 +71,7 @@ export const WarehouseView = () => {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isAddRackModalOpen, setIsAddRackModalOpen] = useState(false);
   const [editingRackId, setEditingRackId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"2d" | "3d">("3d");
+  const [viewMode, setViewMode] = useState<"2d" | "3d" | "map">("3d");
   const [selectedRackId, setSelectedRackId] = useState<string | null>(null);
   const [etageManageRackId, setEtageManageRackId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -484,12 +485,28 @@ export const WarehouseView = () => {
             {/* Mobile Layout */}
             <div className="flex sm:hidden items-center gap-1">
               <Button
-                variant={viewMode === "3d" ? "default" : "outline"}
-                onClick={() => setViewMode(viewMode === "2d" ? "3d" : "2d")}
+                variant={viewMode === "2d" ? "default" : "outline"}
+                onClick={() => setViewMode("2d")}
                 size="sm"
                 className="h-8 px-2 text-xs"
               >
-                {viewMode === "3d" ? <Box className="w-4 h-4" /> : <Grid3x3 className="w-4 h-4" />}
+                <Grid3x3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "3d" ? "default" : "outline"}
+                onClick={() => setViewMode("3d")}
+                size="sm"
+                className="h-8 px-2 text-xs"
+              >
+                <Box className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "default" : "outline"}
+                onClick={() => setViewMode("map")}
+                size="sm"
+                className="h-8 px-2 text-xs"
+              >
+                <Map className="w-4 h-4" />
               </Button>
               <Button
                 onClick={() => setIsAddRackModalOpen(true)}
@@ -546,6 +563,14 @@ export const WarehouseView = () => {
                 >
                   <Box className="w-4 h-4 mr-2" />
                   3D
+                </Button>
+                <Button
+                  variant={viewMode === "map" ? "default" : "outline"}
+                  onClick={() => setViewMode("map")}
+                  size="sm"
+                >
+                  <Map className="w-4 h-4 mr-2" />
+                  Karte
                 </Button>
               </div>
               <select
@@ -629,11 +654,11 @@ export const WarehouseView = () => {
                   <SelectValue placeholder="Regal auswählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  {racks.map((rack) => (
-                    <SelectItem key={rack.id} value={rack.id}>
-                      {rack.name} ({rack.etagen.length} Etagen)
-                    </SelectItem>
-                  ))}
+              {racks.map((rack) => (
+                <SelectItem key={rack.id} value={rack.id}>
+                  {rack.name} ({rack.etagen.length} Etagen)
+                </SelectItem>
+              ))}
                 </SelectContent>
               </Select>
             </div>
@@ -657,6 +682,22 @@ export const WarehouseView = () => {
                 </motion.div>
               ) : null;
             })()}
+          </div>
+        ) : viewMode === "map" ? (
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <WarehouseMap
+                racks={racks}
+                onRackClick={(rackId) => {
+                  setSelectedRackId(rackId);
+                  setViewMode("3d");
+                }}
+              />
+            </motion.div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">

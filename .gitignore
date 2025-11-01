@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Database files
+*.db
+backend/lager.db
+backend/bilder/
+backend/floorplans/
+backend/logos/

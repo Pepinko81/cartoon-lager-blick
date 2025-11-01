@@ -6,6 +6,12 @@ import { Rack as RackType, Fach } from "@/types/warehouse";
 import { exportRackAsGLTF, buildExportableScene } from "@/utils/sceneExporter";
 import { toast } from "sonner";
 import { BrandingConfig, loadBrandingConfig } from "@/config/branding";
+import { getLogoConfig } from "@/api/warehouse";
+import { LogoConfig } from "@/types/warehouse";
+import { LogoEditor } from "./LogoEditor";
+import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
+import { Image as ImageIcon } from "lucide-react";
 
 interface Rack3DProps {
   rack: RackType;
@@ -116,16 +122,27 @@ const BrandedFloor = ({ branding }: BrandedFloorProps) => {
 
 interface BrandedBackgroundProps {
   branding: BrandingConfig;
+  logoConfig?: LogoConfig | null;
+  isLogoEditing?: boolean;
+  onLogoPositionUpdate?: (position: { position_x: number; position_y: number; position_z: number; scale: number }) => void;
 }
 
-const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
+const BrandedBackground = ({ branding, logoConfig, isLogoEditing = false, onLogoPositionUpdate }: BrandedBackgroundProps) => {
   const [logoTexture, setLogoTexture] = useState<THREE.Texture | null>(null);
+  const logoMeshRef = useRef<THREE.Mesh>(null);
+  const backgroundMeshRef = useRef<THREE.Mesh>(null);
+  const { camera } = useThree();
+
+  // Determine logo source: API config takes precedence, fallback to branding preset
+  const logoUrl = logoConfig?.logo_url || branding.background.logoUrl;
+  const logoPosition = logoConfig ? [logoConfig.position_x, logoConfig.position_y, logoConfig.position_z] as [number, number, number] : branding.background.logoPosition;
+  const logoScale = logoConfig?.scale || branding.background.logoScale;
 
   useEffect(() => {
-    if (branding.background.logoUrl) {
+    if (logoUrl) {
       const loader = new THREE.TextureLoader();
       loader.load(
-        branding.background.logoUrl,
+        logoUrl,
         (loadedTexture) => {
           setLogoTexture(loadedTexture);
         },
@@ -134,13 +151,55 @@ const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
           console.error("Fehler beim Laden des Logos:", error);
         }
       );
+    } else {
+      setLogoTexture(null);
     }
-  }, [branding.background.logoUrl]);
+  }, [logoUrl]);
+
+  // Handle logo dragging in 3D space
+  useEffect(() => {
+    if (!isLogoEditing || !backgroundMeshRef.current || !onLogoPositionUpdate) return;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const canvas = event.target as HTMLCanvasElement;
+      if (!canvas || !backgroundMeshRef.current) return;
+
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      
+      // Raycast against background wall
+      const intersects = raycaster.intersectObject(backgroundMeshRef.current);
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        // Transform point to local coordinates of the background
+        onLogoPositionUpdate({
+          position_x: point.x,
+          position_y: point.y,
+          position_z: point.z,
+          scale: logoScale,
+        });
+      }
+    };
+
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.addEventListener('mousemove', handleMouseMove);
+      return () => {
+        canvas.removeEventListener('mousemove', handleMouseMove);
+      };
+    }
+  }, [isLogoEditing, logoScale, onLogoPositionUpdate, camera]);
 
   return (
     <group>
       {/* Gewölbte Hintergrundwand - Точно зад регала */}
-      <mesh position={[0, 5, -6]} receiveShadow>
+      <mesh ref={backgroundMeshRef} position={[0, 5, -6]} receiveShadow>
         <cylinderGeometry args={[20, 20, 15, 32, 1, true, 0, Math.PI]} />
         <meshStandardMaterial
           color={branding.background.color}
@@ -152,8 +211,12 @@ const BrandedBackground = ({ branding }: BrandedBackgroundProps) => {
 
       {/* Logo-Plane (falls Logo vorhanden) - Точно зад регала */}
       {logoTexture && (
-        <mesh position={[0, 5, -5.8]} castShadow>
-          <planeGeometry args={[branding.background.logoScale, branding.background.logoScale]} />
+        <mesh 
+          ref={logoMeshRef}
+          position={logoPosition} 
+          castShadow
+        >
+          <planeGeometry args={[logoScale, logoScale]} />
           <meshStandardMaterial
             map={logoTexture}
             transparent={true}
@@ -283,6 +346,15 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 
 export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPreset = "default" }: Rack3DProps) => {
   const [branding, setBranding] = useState<BrandingConfig>(() => loadBrandingConfig(brandingPreset));
+  const [isLogoEditing, setIsLogoEditing] = useState(false);
+  const [tempLogoPosition, setTempLogoPosition] = useState<{ position_x: number; position_y: number; position_z: number; scale: number } | null>(null);
+
+  // Fetch logo config from API
+  const { data: logoConfig } = useQuery<LogoConfig | null>({
+    queryKey: ["logoConfig"],
+    queryFn: getLogoConfig,
+    retry: false,
+  });
 
   const handleExport = (format: 'glb' | 'gltf') => {
     const exportScene = buildExportableScene(rack, branding);
@@ -294,6 +366,10 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
     const newBranding = loadBrandingConfig(preset);
     setBranding(newBranding);
     toast.success(`Branding zu "${preset}" gewechselt`);
+  };
+
+  const handleLogoPositionUpdate = (position: { position_x: number; position_y: number; position_z: number; scale: number }) => {
+    setTempLogoPosition(position);
   };
 
   // Dynamic camera based on rack size - повдигната по-високо и центрирана
@@ -314,7 +390,12 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
         <color attach="background" args={[branding.background.color]} />
         
         {/* Branded Background */}
-        <BrandedBackground branding={branding} />
+        <BrandedBackground 
+          branding={branding} 
+          logoConfig={tempLogoPosition && logoConfig ? { ...logoConfig, ...tempLogoPosition } : logoConfig}
+          isLogoEditing={isLogoEditing}
+          onLogoPositionUpdate={handleLogoPositionUpdate}
+        />
         
         {/* Branded Floor */}
         <BrandedFloor branding={branding} />
@@ -352,6 +433,20 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
       </Canvas>
       {/* Overlay Buttons outside Canvas for persistency */}
       <div className="absolute top-4 right-4 flex gap-2 z-50 pointer-events-auto">
+        {/* Logo Editor Button */}
+        <button
+          onClick={() => setIsLogoEditing(!isLogoEditing)}
+          className={`px-2 py-1 text-xs rounded border border-border shadow ${
+            isLogoEditing 
+              ? "bg-primary text-primary-foreground" 
+              : "bg-card hover:bg-accent"
+          }`}
+        >
+          <span className="inline-flex items-center gap-1">
+            <ImageIcon className="w-4 h-4" />
+            Logo bearbeiten
+          </span>
+        </button>
         {/* Branding Selector */}
         <div className="relative group">
           <button
@@ -444,6 +539,23 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
           <p className="mt-0.5 text-[10px] sm:text-xs opacity-70">Klicken & Ziehen</p>
         </div>
       </div>
+      
+      {/* Logo Editor Modal */}
+      <AnimatePresence>
+        {isLogoEditing && (
+          <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <LogoEditor
+              onClose={() => {
+                setIsLogoEditing(false);
+                setTempLogoPosition(null);
+              }}
+              onPositionUpdate={(pos) => {
+                setTempLogoPosition(pos);
+              }}
+            />
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

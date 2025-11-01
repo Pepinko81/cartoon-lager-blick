@@ -9,7 +9,7 @@ router.get("/", authenticateToken, (req, res) => {
   try {
     // Alle Regale laden
     const regale = db
-      .prepare("SELECT id, name, beschreibung FROM regale ORDER BY id")
+      .prepare("SELECT id, name, beschreibung, position_x, position_y FROM regale ORDER BY id")
       .all();
 
     // Für jedes Regal die Etagen laden
@@ -59,6 +59,8 @@ router.get("/", authenticateToken, (req, res) => {
         id: regal.id.toString(),
         name: regal.name,
         description: regal.beschreibung || undefined,
+        position_x: regal.position_x ?? undefined,
+        position_y: regal.position_y ?? undefined,
         etagen: etagenMitFaechern,
       };
     });
@@ -147,10 +149,10 @@ router.post("/", authenticateToken, express.json(), (req, res) => {
 router.put("/:id", authenticateToken, express.json(), (req, res) => {
   try {
     const regalId = parseInt(req.params.id);
-    const { name, beschreibung, description } = req.body;
+    const { name, beschreibung, description, position_x, position_y } = req.body;
 
     // Prüfen ob Regal existiert
-    const regal = db.prepare("SELECT id FROM regale WHERE id = ?").get(regalId);
+    const regal = db.prepare("SELECT id, name, beschreibung FROM regale WHERE id = ?").get(regalId);
     if (!regal) {
       return res.status(404).json({
         nachricht: "Regal nicht gefunden",
@@ -158,34 +160,49 @@ router.put("/:id", authenticateToken, express.json(), (req, res) => {
       });
     }
 
-    const beschreibungText = beschreibung || description || null;
-    let stmt;
-    let params;
+    const beschreibungText = beschreibung || description;
+    const updates = [];
+    const params = [];
 
-    if (name && beschreibungText !== undefined) {
-      stmt = db.prepare("UPDATE regale SET name = ?, beschreibung = ? WHERE id = ?");
-      params = [name.trim(), beschreibungText?.trim() || null, regalId];
-    } else if (name) {
-      stmt = db.prepare("UPDATE regale SET name = ? WHERE id = ?");
-      params = [name.trim(), regalId];
-    } else if (beschreibungText !== undefined) {
-      stmt = db.prepare("UPDATE regale SET beschreibung = ? WHERE id = ?");
-      params = [beschreibungText?.trim() || null, regalId];
-    } else {
+    if (name !== undefined) {
+      updates.push("name = ?");
+      params.push(name.trim());
+    }
+    if (beschreibungText !== undefined) {
+      updates.push("beschreibung = ?");
+      params.push(beschreibungText?.trim() || null);
+    }
+    if (position_x !== undefined) {
+      updates.push("position_x = ?");
+      params.push(position_x === null ? null : parseFloat(position_x));
+    }
+    if (position_y !== undefined) {
+      updates.push("position_y = ?");
+      params.push(position_y === null ? null : parseFloat(position_y));
+    }
+
+    if (updates.length === 0) {
       return res.status(400).json({
         nachricht: "Keine Daten zum Aktualisieren bereitgestellt",
         fehler: true,
       });
     }
 
+    params.push(regalId);
+    const stmt = db.prepare(`UPDATE regale SET ${updates.join(", ")} WHERE id = ?`);
     stmt.run(...params);
+
+    // Updated regal data for response
+    const updatedRegal = db.prepare("SELECT id, name, beschreibung, position_x, position_y FROM regale WHERE id = ?").get(regalId);
 
     res.json({
       nachricht: "Regal erfolgreich aktualisiert",
       daten: {
         id: regalId.toString(),
-        name: name || regal.name,
-        beschreibung: beschreibungText,
+        name: updatedRegal.name,
+        beschreibung: updatedRegal.beschreibung || undefined,
+        position_x: updatedRegal.position_x ?? undefined,
+        position_y: updatedRegal.position_y ?? undefined,
       },
     });
   } catch (error) {

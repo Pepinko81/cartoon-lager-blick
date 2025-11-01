@@ -16,6 +16,8 @@ export interface Rack {
   id: string;
   name: string;
   description?: string;
+  position_x?: number;
+  position_y?: number;
   etagen: Etage[];
 }
 
@@ -34,4 +36,21 @@ export interface AddRackData {
   description?: string;
   anzahl_etagen?: number;
   slotCount?: number;
+}
+
+export interface FloorPlan {
+  id: string;
+  image_path: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+export interface LogoConfig {
+  id: string;
+  logo_url: string;
+  position_x: number;
+  position_y: number;
+  position_z: number;
+  scale: number;
+  created_at?: string;
 }

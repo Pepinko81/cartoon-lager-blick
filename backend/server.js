@@ -8,6 +8,8 @@ import etagenRoutes from "./routes/etagen.js";
 import faecherRoutes from "./routes/faecher.js";
 import bilderRoutes from "./routes/bilder.js";
 import authRoutes from "./routes/auth.js";
+import floorplanRoutes from "./routes/floorplan.js";
+import logosRoutes from "./routes/logos.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +43,14 @@ app.use(express.urlencoded({ extended: true }));
 const bilderDir = path.join(__dirname, "bilder");
 app.use("/bilder", express.static(bilderDir));
 
+// Statische Route für Floor Plans
+const floorplansDir = path.join(__dirname, "floorplans");
+app.use("/floorplans", express.static(floorplansDir));
+
+// Statische Route für Logos
+const logosDir = path.join(__dirname, "logos");
+app.use("/logos", express.static(logosDir));
+
 // Auth-Routen (unprotected)
 app.use("/api", authRoutes);
 
@@ -51,6 +61,8 @@ app.use("/api/etage", etagenRoutes); // GET /api/etage/:id, POST /api/etage/:id/
 app.use("/api/fach", faecherRoutes); // PUT /api/fach/:id, DELETE /api/fach/:id
 app.use("/api/fach", bilderRoutes); // POST /api/fach/:id/bild
 app.use("/api/bild", bilderRoutes); // DELETE /api/bild/:id
+app.use("/api/floorplan", floorplanRoutes); // POST, GET, PUT, DELETE /api/floorplan
+app.use("/api/logo", logosRoutes); // POST, GET, PUT, DELETE /api/logo
 
 // Fehlerbehandlung für Multer-Upload-Fehler
 app.use((error, req, res, next) => {
@@ -90,6 +102,8 @@ app.get("/api/health", (req, res) => {
           console.log(`   - http://192.168.178.57:${PORT}`);
           console.log(`📦 Datenbank: ${path.join(__dirname, "lager.db")}`);
           console.log(`🖼️  Bilder-Verzeichnis: ${bilderDir}`);
+          console.log(`🗺️  Floor Plans-Verzeichnis: ${floorplansDir}`);
+          console.log(`🎨 Logos-Verzeichnis: ${logosDir}`);
         });
 
 // Graceful Shutdown

@@ -18,7 +18,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS regale (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    beschreibung TEXT
+    beschreibung TEXT,
+    position_x REAL,
+    position_y REAL
   );
 
   CREATE TABLE IF NOT EXISTS etagen (
@@ -51,6 +53,23 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     passwort_hash TEXT NOT NULL,
     erstellt_am DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS warehouse_floor_plan (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image_path TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS branding_logos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logo_url TEXT NOT NULL,
+    position_x REAL DEFAULT 0,
+    position_y REAL DEFAULT 5,
+    position_z REAL DEFAULT -5.8,
+    scale REAL DEFAULT 3,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
 
@@ -121,6 +140,26 @@ try {
   console.error("⚠️ Migrationsfehler (kann ignoriert werden wenn Schema bereits aktuell):", error.message);
 }
 
+// Migration: Add position columns to regale table if they don't exist
+try {
+  const regaleTableInfo = db.pragma("table_info(regale)");
+  const hasPositionX = regaleTableInfo.some((col) => col.name === "position_x");
+  const hasPositionY = regaleTableInfo.some((col) => col.name === "position_y");
+
+  if (!hasPositionX || !hasPositionY) {
+    console.log("🔄 Füge position_x und position_y zu regale Tabelle hinzu...");
+    if (!hasPositionX) {
+      db.exec("ALTER TABLE regale ADD COLUMN position_x REAL");
+    }
+    if (!hasPositionY) {
+      db.exec("ALTER TABLE regale ADD COLUMN position_y REAL");
+    }
+    console.log("✅ Position-Spalten zu regale Tabelle hinzugefügt");
+  }
+} catch (error) {
+  console.error("⚠️ Migrationsfehler für position-Spalten:", error.message);
+}
+
 // Index für bessere Performance
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_faecher_etage_id ON faecher(etage_id);
@@ -171,6 +210,18 @@ if (regaleAnzahl.anzahl === 0) {
 const bilderDir = path.join(__dirname, "bilder");
 if (!fs.existsSync(bilderDir)) {
   fs.mkdirSync(bilderDir, { recursive: true });
+}
+
+// Floorplans-Verzeichnis erstellen, falls es nicht existiert
+const floorplansDir = path.join(__dirname, "floorplans");
+if (!fs.existsSync(floorplansDir)) {
+  fs.mkdirSync(floorplansDir, { recursive: true });
+}
+
+// Logos-Verzeichnis erstellen, falls es nicht existiert
+const logosDir = path.join(__dirname, "logos");
+if (!fs.existsSync(logosDir)) {
+  fs.mkdirSync(logosDir, { recursive: true });
 }
 
 export default db;
