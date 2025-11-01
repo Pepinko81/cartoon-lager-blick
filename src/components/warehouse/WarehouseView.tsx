@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { getFloorPlan } from "@/api/warehouse";
 import {
   DropdownMenu,
   DropdownMenuContent,
