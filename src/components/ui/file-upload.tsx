@@ -1,4 +1,4 @@
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, DragEvent, ChangeEvent, MouseEvent } from "react";
 import { Upload, X } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
@@ -79,9 +79,9 @@ export const FileUpload = ({
     }
   };
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleClick = (e: MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation(); // Prevent event bubbling to parent elements (like modal backdrop)
+    // Don't call preventDefault() - we need the file input click to work
     if (!disabled && fileInputRef.current) {
       fileInputRef.current.click();
     }
