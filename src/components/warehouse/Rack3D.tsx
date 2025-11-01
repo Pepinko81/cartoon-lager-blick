@@ -183,12 +183,14 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
 
       {/* Etagen and Fächer - сортирани по номер (1..N) от долу нагоре */}
       {/* Важно: сортираме по nummer възходящо (1..N), така че etageIndex 0 = най-ниско (номер 1) */}
+      {/* Проверка: ако потребителят вижда номерациите на обратно, може би трябва да променим сортирането */}
       {[...(rack.etagen || [])]
         .sort((a, b) => a.nummer - b.nummer)
         .map((etage, etageIndex) => {
         const shelfThickness = 0.12;
         const slotHeight = 0.3;
-        const levelY = etageIndex * levelSpacing; // vom Boden nach oben: index 0 = Boden, index 1 = +1.0, etc.
+        // Визуално показваме етажите от долу нагоре: индекс 0 = Y=0 (най-ниско), индекс 1 = Y=1.0, и т.н.
+        const levelY = etageIndex * levelSpacing;
         
         return (
           <group key={etage.id}>
