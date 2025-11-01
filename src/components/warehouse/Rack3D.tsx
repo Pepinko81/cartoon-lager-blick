@@ -182,10 +182,16 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       {/* Regal um 270 Grad gedreht (rotation auf Y-Achse) - общо 270° от началната позиция */}
 
       {/* Etagen and Fächer - сортирани по номер (1..N) от долу нагоре */}
+      {/* Backend вече сортира по nummer (ORDER BY nummer), но за да сме сигурни, сортираме отново */}
       {/* Важно: сортираме по nummer възходящо (1..N), така че etageIndex 0 = най-ниско (номер 1) */}
-      {/* Проверка: ако потребителят вижда номерациите на обратно, може би трябва да променим сортирането */}
       {[...(rack.etagen || [])]
-        .sort((a, b) => a.nummer - b.nummer)
+        .sort((a, b) => {
+          // Сортираме по nummer възходящо: 1, 2, 3, 4...
+          // Ако nummer са числа, директно ги сравняваме
+          const numA = typeof a.nummer === 'number' ? a.nummer : parseInt(a.nummer, 10);
+          const numB = typeof b.nummer === 'number' ? b.nummer : parseInt(b.nummer, 10);
+          return numA - numB;
+        })
         .map((etage, etageIndex) => {
         const shelfThickness = 0.12;
         const slotHeight = 0.3;
