@@ -182,12 +182,13 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       {/* Regal um 270 Grad gedreht (rotation auf Y-Achse) - общо 270° от началната позиция */}
 
       {/* Etagen and Fächer - сортирани по номер (1..N) от долу нагоре */}
+      {/* Важно: сортираме по nummer възходящо (1..N), така че etageIndex 0 = най-ниско (номер 1) */}
       {[...(rack.etagen || [])]
         .sort((a, b) => a.nummer - b.nummer)
         .map((etage, etageIndex) => {
         const shelfThickness = 0.12;
         const slotHeight = 0.3;
-        const levelY = etageIndex * levelSpacing; // vom Boden nach oben
+        const levelY = etageIndex * levelSpacing; // vom Boden nach oben: index 0 = Boden, index 1 = +1.0, etc.
         
         return (
           <group key={etage.id}>
@@ -198,15 +199,15 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
             </mesh>
 
             {/* Etage Label - От ляво, на дъното на етажа, правилно ориентиран към камерата */}
-            {/* Регалът е завъртян на -90° (rotation={[0, -Math.PI / 2, 0]}), камерата е от ляво
-                Текстът трябва да гледа към камерата: в локалните координати камерата е по +Z, така че rotation={[0, 0, 0]} или без rotation */}
+            {/* Регалът е завъртян на -90° около Y (rotation={[0, -Math.PI / 2, 0]}), камерата е от ляво (отрицателен X)
+                За да текстът гледа към камерата (която в локални координати е по +Z), трябва да завъртим текста на 90° около Y */}
             <Text
               position={[-maxFaecher / 2 - 0.6, levelY, 0]}
               fontSize={0.18}
               color="#7ca3d9"
               anchorX="right"
               anchorY="bottom"
-              rotation={[0, 0, 0]}
+              rotation={[0, Math.PI / 2, 0]}
             >
               {etage.name || `E${etage.nummer}`}
             </Text>
