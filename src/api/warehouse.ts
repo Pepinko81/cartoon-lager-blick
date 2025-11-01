@@ -45,20 +45,35 @@ export const uploadFloorPlan = async (file: File): Promise<FloorPlan> => {
 };
 
 export const getFloorPlan = async (): Promise<FloorPlan | null> => {
+  const headers = getAuthHeader();
+  
+  // Check if we have a token before making request
+  if (!headers.Authorization) {
+    console.warn("⚠️ Cannot fetch floor plan: No authentication token");
+    return null;
+  }
+
   const response = await fetch(`${API_BASE}/floorplan`, {
     method: "GET",
     headers: {
-      ...getAuthHeader(),
+      ...headers,
       "Content-Type": "application/json",
     },
   });
 
+  // 404 means no floor plan exists, which is valid
   if (response.status === 404) {
     return null;
   }
 
+  // 401 means unauthorized - token invalid or expired
+  if (response.status === 401) {
+    console.error("❌ Unauthorized: Invalid or expired token");
+    return null;
+  }
+
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({ nachricht: "Unknown error" }));
     throw new Error(error.nachricht || "Fehler beim Laden des Grundrisses");
   }
 
