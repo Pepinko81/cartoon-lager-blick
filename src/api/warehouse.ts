@@ -7,8 +7,12 @@ interface AuthHeader {
 
 const getAuthHeader = (): AuthHeader => {
   const token = localStorage.getItem("lager_token");
+  if (!token) {
+    console.warn("⚠️ No authentication token found in localStorage");
+    return {};
+  }
   return {
-    Authorization: token ? `Bearer ${token}` : "",
+    Authorization: `Bearer ${token}`,
   };
 };
 
