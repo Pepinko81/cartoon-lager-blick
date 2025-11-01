@@ -9,7 +9,7 @@ router.get("/", authenticateToken, (req, res) => {
   try {
     // Alle Regale laden
     const regale = db
-      .prepare("SELECT id, name, beschreibung, position_x, position_y FROM regale ORDER BY id")
+      .prepare("SELECT id, name, beschreibung, position_x, position_y, rotation FROM regale ORDER BY id")
       .all();
 
     // Für jedes Regal die Etagen laden
@@ -55,14 +55,15 @@ router.get("/", authenticateToken, (req, res) => {
         };
       });
 
-      return {
-        id: regal.id.toString(),
-        name: regal.name,
-        description: regal.beschreibung || undefined,
-        position_x: regal.position_x ?? undefined,
-        position_y: regal.position_y ?? undefined,
-        etagen: etagenMitFaechern,
-      };
+        return {
+          id: regal.id.toString(),
+          name: regal.name,
+          description: regal.beschreibung || undefined,
+          position_x: regal.position_x ?? undefined,
+          position_y: regal.position_y ?? undefined,
+          rotation: regal.rotation ?? 0,
+          etagen: etagenMitFaechern,
+        };
     });
 
     res.json(regaleMitEtagen);
@@ -149,7 +150,7 @@ router.post("/", authenticateToken, express.json(), (req, res) => {
 router.put("/:id", authenticateToken, express.json(), (req, res) => {
   try {
     const regalId = parseInt(req.params.id);
-    const { name, beschreibung, description, position_x, position_y } = req.body;
+    const { name, beschreibung, description, position_x, position_y, rotation } = req.body;
 
     // Prüfen ob Regal existiert
     const regal = db.prepare("SELECT id, name, beschreibung FROM regale WHERE id = ?").get(regalId);
@@ -180,6 +181,10 @@ router.put("/:id", authenticateToken, express.json(), (req, res) => {
       updates.push("position_y = ?");
       params.push(position_y === null ? null : parseFloat(position_y));
     }
+    if (rotation !== undefined) {
+      updates.push("rotation = ?");
+      params.push(rotation === null ? null : parseFloat(rotation));
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({
@@ -193,7 +198,7 @@ router.put("/:id", authenticateToken, express.json(), (req, res) => {
     stmt.run(...params);
 
     // Updated regal data for response
-    const updatedRegal = db.prepare("SELECT id, name, beschreibung, position_x, position_y FROM regale WHERE id = ?").get(regalId);
+    const updatedRegal = db.prepare("SELECT id, name, beschreibung, position_x, position_y, rotation FROM regale WHERE id = ?").get(regalId);
 
     res.json({
       nachricht: "Regal erfolgreich aktualisiert",
@@ -203,6 +208,7 @@ router.put("/:id", authenticateToken, express.json(), (req, res) => {
         beschreibung: updatedRegal.beschreibung || undefined,
         position_x: updatedRegal.position_x ?? undefined,
         position_y: updatedRegal.position_y ?? undefined,
+        rotation: updatedRegal.rotation ?? 0,
       },
     });
   } catch (error) {

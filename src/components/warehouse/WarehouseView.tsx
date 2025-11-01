@@ -139,6 +139,14 @@ export const WarehouseView = () => {
     retry: false,
   });
 
+  // Fetch floor plan for 2D view
+  const { data: floorPlan } = useQuery({
+    queryKey: ["floorPlan"],
+    queryFn: getFloorPlan,
+    retry: false,
+    enabled: viewMode === "2d", // Only fetch when in 2D view
+  });
+
   // Add rack mutation
   const addRackMutation = useMutation({
     mutationFn: async (data: AddRackData) => {
@@ -741,16 +749,30 @@ export const WarehouseView = () => {
             </motion.div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
-            {racks.map((rack) => (
-              <Rack
-                key={rack.id}
-                rack={rack}
-                onSlotClick={(slotId) => setSelectedSlotId(slotId)}
-                onEdit={handleRackEdit}
-                onEtagenChange={() => refetch()}
+          <div className="relative">
+            {/* Floor Plan Background for 2D view */}
+            {floorPlan && (
+              <div
+                className="absolute inset-0 -z-10 opacity-20"
+                style={{
+                  backgroundImage: `url(${floorPlan.image_path})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }}
               />
-            ))}
+            )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 relative z-0">
+              {racks.map((rack) => (
+                <Rack
+                  key={rack.id}
+                  rack={rack}
+                  onSlotClick={(slotId) => setSelectedSlotId(slotId)}
+                  onEdit={handleRackEdit}
+                  onEtagenChange={() => refetch()}
+                />
+              ))}
+            </div>
           </div>
         )}
       </main>

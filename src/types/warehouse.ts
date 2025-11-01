@@ -18,6 +18,7 @@ export interface Rack {
   description?: string;
   position_x?: number;
   position_y?: number;
+  rotation?: number; // Rotation in degrees (0-360)
   etagen: Etage[];
 }
 

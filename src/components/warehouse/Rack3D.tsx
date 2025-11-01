@@ -125,9 +125,10 @@ interface BrandedBackgroundProps {
   logoConfig?: LogoConfig | null;
   isLogoEditing?: boolean;
   onLogoPositionUpdate?: (position: { position_x: number; position_y: number; position_z: number; scale: number }) => void;
+  rackHeight?: number; // Height of the rack for positioning logo
 }
 
-const BrandedBackground = ({ branding, logoConfig, isLogoEditing = false, onLogoPositionUpdate }: BrandedBackgroundProps) => {
+const BrandedBackground = ({ branding, logoConfig, isLogoEditing = false, onLogoPositionUpdate, rackHeight = 4 }: BrandedBackgroundProps) => {
   const [logoTexture, setLogoTexture] = useState<THREE.Texture | null>(null);
   const logoMeshRef = useRef<THREE.Mesh>(null);
   const backgroundMeshRef = useRef<THREE.Mesh>(null);
@@ -135,7 +136,16 @@ const BrandedBackground = ({ branding, logoConfig, isLogoEditing = false, onLogo
 
   // Determine logo source: API config takes precedence, fallback to branding preset
   const logoUrl = logoConfig?.logo_url || branding.background.logoUrl;
-  const logoPosition = logoConfig ? [logoConfig.position_x, logoConfig.position_y, logoConfig.position_z] as [number, number, number] : branding.background.logoPosition;
+  
+  // Calculate logo position: centered above rack, behind it on Z-axis
+  // Background wall is at [0, 5, -6], logo should be at [0, rackHeight/2 + 2, -5.8]
+  // This positions it exactly behind and above the center of the rack
+  const defaultLogoY = rackHeight / 2 + 2; // Center of rack + offset above
+  const defaultLogoZ = -5.8; // Slightly in front of background wall (-6)
+  
+  const logoPosition = logoConfig 
+    ? [logoConfig.position_x, logoConfig.position_y, logoConfig.position_z] as [number, number, number]
+    : [0, defaultLogoY, defaultLogoZ] as [number, number, number];
   const logoScale = logoConfig?.scale || branding.background.logoScale;
 
   useEffect(() => {
@@ -395,6 +405,7 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
           logoConfig={tempLogoPosition && logoConfig ? { ...logoConfig, ...tempLogoPosition } : logoConfig}
           isLogoEditing={isLogoEditing}
           onLogoPositionUpdate={handleLogoPositionUpdate}
+          rackHeight={rackHeight}
         />
         
         {/* Branded Floor */}

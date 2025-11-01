@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, ZoomIn, ZoomOut, Grid, RotateCcw, Plus } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Grid, RotateCcw, Plus, Pencil, Save, Trash2 } from "lucide-react";
 import { Rack } from "@/types/warehouse";
 import { FloorPlan } from "@/types/warehouse";
 import { Button } from "@/components/ui/button";
@@ -27,19 +27,30 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [rackPositions, setRackPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [rackRotations, setRackRotations] = useState<Record<string, number>>({});
+  const [showDrawing, setShowDrawing] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingMode, setDrawingMode] = useState<"pencil" | "rectangle" | "line" | "erase">("pencil");
+  const [drawingColor, setDrawingColor] = useState("#000000");
+  const [drawingLineWidth, setDrawingLineWidth] = useState(2);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [canvasContext, setCanvasContext] = useState<CanvasRenderingContext2D | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  // Initialize rack positions from racks data
+  // Initialize rack positions and rotations from racks data
   useEffect(() => {
     const positions: Record<string, { x: number; y: number }> = {};
+    const rotations: Record<string, number> = {};
     racks.forEach((rack) => {
       positions[rack.id] = {
         x: rack.position_x ?? 100,
         y: rack.position_y ?? 100,
       };
+      rotations[rack.id] = rack.rotation ?? 0;
     });
     setRackPositions(positions);
+    setRackRotations(rotations);
   }, [racks]);
 
   // Fetch floor plan on mount
@@ -149,10 +160,9 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
     setIsPanning(false);
   };
 
-  // Rack drag handlers
+  // Rack drag handlers - fixed for zoom
   const handleRackMouseDown = (e: React.MouseEvent, rackId: string) => {
     e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
     const containerRect = mapContainerRef.current?.getBoundingClientRect();
     if (!containerRect) return;
 
@@ -160,10 +170,12 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
     const mouseX = e.clientX - containerRect.left;
     const mouseY = e.clientY - containerRect.top;
     
+    // Calculate offset considering zoom and pan
+    // Position in transformed space: (currentPos.x * zoom) + pan.x
     setDragging(rackId);
     setDragOffset({
-      x: mouseX - (currentPos.x * zoom + pan.x),
-      y: mouseY - (currentPos.y * zoom + pan.y),
+      x: mouseX - ((currentPos.x * zoom) + pan.x),
+      y: mouseY - ((currentPos.y * zoom) + pan.y),
     });
   };
 
@@ -175,6 +187,7 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
       const mouseX = e.clientX - containerRect.left;
       const mouseY = e.clientY - containerRect.top;
       
+      // Convert screen coordinates to map coordinates accounting for zoom and pan
       const x = (mouseX - pan.x - dragOffset.x) / zoom;
       const y = (mouseY - pan.y - dragOffset.y) / zoom;
 
@@ -207,6 +220,159 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
     [dragging, rackPositions, updatePositionMutation]
   );
 
+  // Handle rack rotation - rotate by 45 degrees each time
+  const handleRackRotate = useCallback((rackId: string) => {
+    setRackRotations((prev) => {
+      const currentRotation = prev[rackId] || 0;
+      const newRotation = (currentRotation + 45) % 360;
+      const updated = { ...prev, [rackId]: newRotation };
+      
+      // Save rotation to backend
+      updateRotationMutation.mutate({ rackId, rotation: newRotation });
+      
+      return updated;
+    });
+  }, []);
+
+  // Update rotation mutation
+  const updateRotationMutation = useMutation({
+    mutationFn: ({ rackId, rotation }: { rackId: string; rotation: number }) =>
+      updateRackPosition(rackId, rackPositions[rackId]?.x ?? 100, rackPositions[rackId]?.y ?? 100, rotation),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["racks"] });
+    },
+    onError: (error: Error) => {
+      console.error("Fehler beim Aktualisieren der Rotation:", error);
+    },
+  });
+
+  // Drawing handlers
+  const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
+  
+  const handleDrawingStart = (e: React.MouseEvent) => {
+    if (!mapContainerRef.current || !showDrawing) return;
+    
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setDrawingStart({ x, y });
+    setIsDrawing(true);
+    setIsPanning(false);
+    
+    // Initialize canvas if not exists
+    if (!canvasRef.current) {
+      const canvas = document.createElement("canvas");
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      canvas.style.position = "absolute";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.zIndex = "5";
+      canvas.style.pointerEvents = showDrawing ? "auto" : "none";
+      mapContainerRef.current.appendChild(canvas);
+      canvasRef.current = canvas;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        setCanvasContext(ctx);
+        ctx.strokeStyle = drawingColor;
+        ctx.lineWidth = drawingLineWidth;
+        ctx.lineCap = "round";
+      }
+    }
+    
+    if (canvasContext && drawingStart) {
+      if (drawingMode === "pencil" || drawingMode === "erase") {
+        canvasContext.beginPath();
+        canvasContext.moveTo(x, y);
+      }
+    }
+  };
+
+  const handleDrawingMove = (e: React.MouseEvent) => {
+    if (!isDrawing || !canvasContext || !mapContainerRef.current) return;
+    
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    if (drawingMode === "pencil") {
+      canvasContext.strokeStyle = drawingColor;
+      canvasContext.lineTo(x, y);
+      canvasContext.stroke();
+    } else if (drawingMode === "erase") {
+      canvasContext.strokeStyle = "#ffffff";
+      canvasContext.globalCompositeOperation = "destination-out";
+      canvasContext.lineTo(x, y);
+      canvasContext.stroke();
+      canvasContext.globalCompositeOperation = "source-over";
+    }
+  };
+
+  const handleDrawingEnd = (e: React.MouseEvent) => {
+    if (!isDrawing || !canvasContext || !drawingStart || !mapContainerRef.current) return;
+    
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    if (drawingMode === "rectangle") {
+      canvasContext.strokeStyle = drawingColor;
+      canvasContext.strokeRect(
+        drawingStart.x,
+        drawingStart.y,
+        x - drawingStart.x,
+        y - drawingStart.y
+      );
+    } else if (drawingMode === "line") {
+      canvasContext.strokeStyle = drawingColor;
+      canvasContext.beginPath();
+      canvasContext.moveTo(drawingStart.x, drawingStart.y);
+      canvasContext.lineTo(x, y);
+      canvasContext.stroke();
+    }
+    
+    setIsDrawing(false);
+    setDrawingStart(null);
+  };
+
+  // Export drawn map as image and upload
+  const handleSaveDrawing = async () => {
+    if (!canvasRef.current) return;
+    
+    canvasRef.current.toBlob(async (blob) => {
+      if (!blob) return;
+      
+      const file = new File([blob], `drawn-map-${Date.now()}.png`, { type: "image/png" });
+      try {
+        await uploadMutation.mutateAsync(file);
+        setShowDrawing(false);
+        if (canvasRef.current) {
+          canvasRef.current.remove();
+          canvasRef.current = null;
+          setCanvasContext(null);
+        }
+        toast({
+          title: "Erfolgreich",
+          description: "Gezeichnete Karte wurde gespeichert",
+        });
+      } catch (error) {
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Speichern der gezeichneten Karte",
+          variant: "destructive",
+        });
+      }
+    }, "image/png");
+  };
+
+  // Clear drawing
+  const handleClearDrawing = () => {
+    if (canvasContext && canvasRef.current) {
+      canvasContext.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  };
+
   useEffect(() => {
     if (dragging) {
       window.addEventListener("mousemove", handleRackMouseMove);
@@ -230,6 +396,20 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         >
           <Upload className="w-4 h-4 mr-2" />
           Grundriss hochladen
+        </Button>
+        <Button
+          variant={showDrawing ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            setShowDrawing(!showDrawing);
+            if (!showDrawing) {
+              setIsDrawing(false);
+            }
+          }}
+          className="bg-card/90 backdrop-blur-sm"
+        >
+          <Pencil className="w-4 h-4 mr-2" />
+          Karte zeichnen
         </Button>
         <Button
           variant="outline"
@@ -302,14 +482,38 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
       <div
         ref={mapContainerRef}
         className="w-full h-[600px] bg-muted rounded-lg overflow-hidden relative border border-border"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseDown={(e) => {
+          if (showDrawing && !isPanning) {
+            handleDrawingStart(e);
+          } else {
+            handleMouseDown(e);
+          }
+        }}
+        onMouseMove={(e) => {
+          if (showDrawing && isDrawing) {
+            handleDrawingMove(e);
+          } else {
+            handleMouseMove(e);
+          }
+        }}
+        onMouseUp={(e) => {
+          if (showDrawing && isDrawing) {
+            handleDrawingEnd(e);
+          } else {
+            handleMouseUp();
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (showDrawing && isDrawing) {
+            handleDrawingEnd(e);
+          } else {
+            handleMouseUp();
+          }
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        style={{ cursor: isPanning ? "grabbing" : dragging ? "grabbing" : "grab" }}
+        style={{ cursor: isPanning ? "grabbing" : dragging ? "grabbing" : showDrawing ? "crosshair" : "grab" }}
       >
         {/* Floor Plan Background */}
         {floorPlan ? (
@@ -321,7 +525,9 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: "center center",
+              transformOrigin: "0 0",
+              width: "100%",
+              height: "100%",
             }}
           />
         ) : (
@@ -356,11 +562,14 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
           className="absolute inset-0"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: "top left",
+            transformOrigin: "0 0",
+            width: "100%",
+            height: "100%",
           }}
         >
           {racks.map((rack) => {
             const position = rackPositions[rack.id] || { x: rack.position_x ?? 100, y: rack.position_y ?? 100 };
+            const rotation = rackRotations[rack.id] || 0;
             const isDraggingThis = dragging === rack.id;
 
             return (
@@ -372,9 +581,16 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                 style={{
                   left: `${position.x}px`,
                   top: `${position.y}px`,
-                  transform: "translate(-50%, -50%)",
+                  transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                  transformOrigin: "center center",
                 }}
                 onMouseDown={(e) => handleRackMouseDown(e, rack.id)}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  if (!isDraggingThis) {
+                    handleRackRotate(rack.id);
+                  }
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onRackClick && !isDraggingThis) {
@@ -384,9 +600,16 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                 whileHover={!isDraggingThis ? { scale: 1.1 } : {}}
                 whileTap={{ scale: 0.95 }}
               >
-                <div className={`bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-lg border-2 border-background min-w-[120px] text-center ${
+                <div className={`bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-lg border-2 border-background min-w-[120px] text-center relative ${
                   isDraggingThis ? "opacity-80" : ""
                 }`}>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full border-2 border-background cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRackRotate(rack.id);
+                    }}
+                    title="Zum Drehen doppelklicken oder auf den Punkt klicken"
+                  />
                   <p className="font-semibold text-sm">{rack.name}</p>
                   <p className="text-xs opacity-80">{rack.etagen.length} Etagen</p>
                 </div>
@@ -395,10 +618,78 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
           })}
         </div>
 
+        {/* Drawing Canvas Overlay */}
+        {showDrawing && (
+          <div className="absolute inset-0 z-5 pointer-events-none">
+            {/* Canvas will be appended here */}
+          </div>
+        )}
+
+        {/* Drawing Controls */}
+        {showDrawing && (
+          <div className="absolute bottom-4 left-4 right-4 z-30 bg-card/90 backdrop-blur-sm rounded-lg p-3 border border-border flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={drawingMode === "pencil" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDrawingMode("pencil")}
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={drawingMode === "rectangle" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDrawingMode("rectangle")}
+              >
+                ▭
+              </Button>
+              <Button
+                variant={drawingMode === "line" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDrawingMode("line")}
+              >
+                ─
+              </Button>
+              <Button
+                variant={drawingMode === "erase" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDrawingMode("erase")}
+              >
+                🧹
+              </Button>
+            </div>
+            <input
+              type="color"
+              value={drawingColor}
+              onChange={(e) => setDrawingColor(e.target.value)}
+              className="w-10 h-8 rounded border"
+            />
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={drawingLineWidth}
+              onChange={(e) => setDrawingLineWidth(Number(e.target.value))}
+              className="w-20"
+            />
+            <Button variant="outline" size="sm" onClick={handleClearDrawing}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Löschen
+            </Button>
+            <Button variant="default" size="sm" onClick={handleSaveDrawing}>
+              <Save className="w-4 h-4 mr-2" />
+              Speichern
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowDrawing(false)}>
+              Schließen
+            </Button>
+          </div>
+        )}
+
         {/* Instructions */}
-        {!floorPlan && (
+        {!floorPlan && !showDrawing && (
           <div className="absolute bottom-4 left-4 right-4 text-center text-sm text-muted-foreground bg-card/80 backdrop-blur-sm rounded p-2">
-            <p>Laden Sie einen Grundriss hoch und ziehen Sie die Regale an die gewünschten Positionen</p>
+            <p>Laden Sie einen Grundriss hoch oder zeichnen Sie eine eigene Karte</p>
           </div>
         )}
       </div>

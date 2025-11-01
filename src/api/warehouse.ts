@@ -231,7 +231,8 @@ export const deleteLogo = async (id: string): Promise<void> => {
 export const updateRackPosition = async (
   rackId: string,
   position_x: number | null,
-  position_y: number | null
+  position_y: number | null,
+  rotation?: number | null
 ): Promise<void> => {
   const response = await fetch(`${API_BASE}/regal/${rackId}`, {
     method: "PUT",
@@ -239,7 +240,7 @@ export const updateRackPosition = async (
       ...getAuthHeader(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ position_x, position_y }),
+    body: JSON.stringify({ position_x, position_y, rotation }),
   });
 
   if (!response.ok) {

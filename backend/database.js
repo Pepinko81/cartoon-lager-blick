@@ -20,7 +20,8 @@ db.exec(`
     name TEXT NOT NULL,
     beschreibung TEXT,
     position_x REAL,
-    position_y REAL
+    position_y REAL,
+    rotation REAL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS etagen (
@@ -140,24 +141,28 @@ try {
   console.error("⚠️ Migrationsfehler (kann ignoriert werden wenn Schema bereits aktuell):", error.message);
 }
 
-// Migration: Add position columns to regale table if they don't exist
+// Migration: Add position and rotation columns to regale table if they don't exist
 try {
   const regaleTableInfo = db.pragma("table_info(regale)");
   const hasPositionX = regaleTableInfo.some((col) => col.name === "position_x");
   const hasPositionY = regaleTableInfo.some((col) => col.name === "position_y");
+  const hasRotation = regaleTableInfo.some((col) => col.name === "rotation");
 
-  if (!hasPositionX || !hasPositionY) {
-    console.log("🔄 Füge position_x und position_y zu regale Tabelle hinzu...");
+  if (!hasPositionX || !hasPositionY || !hasRotation) {
+    console.log("🔄 Füge position_x, position_y und rotation zu regale Tabelle hinzu...");
     if (!hasPositionX) {
       db.exec("ALTER TABLE regale ADD COLUMN position_x REAL");
     }
     if (!hasPositionY) {
       db.exec("ALTER TABLE regale ADD COLUMN position_y REAL");
     }
-    console.log("✅ Position-Spalten zu regale Tabelle hinzugefügt");
+    if (!hasRotation) {
+      db.exec("ALTER TABLE regale ADD COLUMN rotation REAL DEFAULT 0");
+    }
+    console.log("✅ Position- und Rotation-Spalten zu regale Tabelle hinzugefügt");
   }
 } catch (error) {
-  console.error("⚠️ Migrationsfehler für position-Spalten:", error.message);
+  console.error("⚠️ Migrationsfehler für position/rotation-Spalten:", error.message);
 }
 
 // Index für bessere Performance
