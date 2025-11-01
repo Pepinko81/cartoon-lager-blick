@@ -22,9 +22,12 @@ export const uploadFloorPlan = async (file: File): Promise<FloorPlan> => {
   const formData = new FormData();
   formData.append("floorplan", file);
 
+  const headers = getAuthHeader();
+  // Don't set Content-Type - browser will set it automatically with boundary for multipart/form-data
+
   const response = await fetch(`${API_BASE}/floorplan`, {
     method: "POST",
-    headers: getAuthHeader(),
+    headers: headers,
     body: formData,
   });
 
@@ -93,9 +96,12 @@ export const uploadLogo = async (file: File): Promise<LogoConfig> => {
   const formData = new FormData();
   formData.append("logo", file);
 
+  const headers = getAuthHeader();
+  // Don't set Content-Type - browser will set it automatically with boundary for multipart/form-data
+
   const response = await fetch(`${API_BASE}/logo`, {
     method: "POST",
-    headers: getAuthHeader(),
+    headers: headers,
     body: formData,
   });
 

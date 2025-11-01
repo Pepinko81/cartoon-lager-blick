@@ -79,7 +79,9 @@ export const FileUpload = ({
     }
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!disabled && fileInputRef.current) {
       fileInputRef.current.click();
     }
