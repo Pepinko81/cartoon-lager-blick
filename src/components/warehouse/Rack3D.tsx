@@ -181,8 +181,10 @@ const RackStructure = ({ rack, onSlotClick }: Rack3DProps) => {
       {/* Kein Rückwand-Panel: offener Regalrahmen */}
       {/* Regal um 270 Grad gedreht (rotation auf Y-Achse) - общо 270° от началната позиция */}
 
-      {/* Etagen and Fächer */}
-      {(rack.etagen || []).map((etage, etageIndex) => {
+      {/* Etagen and Fächer - сортирани по номер (1..N) от долу нагоре */}
+      {[...(rack.etagen || [])]
+        .sort((a, b) => a.nummer - b.nummer)
+        .map((etage, etageIndex) => {
         const shelfThickness = 0.12;
         const slotHeight = 0.3;
         const levelY = etageIndex * levelSpacing; // vom Boden nach oben
@@ -419,15 +421,15 @@ export const Rack3D = ({ rack, onSlotClick, onEdit, onEtagenManage, brandingPres
           </div>
         </div>
       </div>
-      {/* Rack Info Overlay */}
-      <div className="absolute top-24 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border shadow-lg z-40">
-        <h3 className="text-lg font-bold text-foreground mb-1">{rack.name}</h3>
+      {/* Rack Info Overlay - по-малък, responsive за mobile */}
+      <div className="absolute top-16 right-2 sm:top-24 sm:right-4 bg-card/90 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-border shadow-lg z-40 max-w-[160px] sm:max-w-[200px]">
+        <h3 className="text-sm sm:text-base font-bold text-foreground mb-0.5 truncate">{rack.name}</h3>
         {rack.description && (
-          <p className="text-sm text-muted-foreground">{rack.description}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{rack.description}</p>
         )}
-        <div className="mt-2 text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           <p>{rack.etagen.length} Etagen</p>
-          <p className="mt-1 text-xs opacity-70">Klicken & Ziehen zum Drehen</p>
+          <p className="mt-0.5 text-[10px] sm:text-xs opacity-70">Klicken & Ziehen</p>
         </div>
       </div>
     </div>
