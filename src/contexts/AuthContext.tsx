@@ -25,16 +25,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [benutzer, setBenutzer] = useState<Benutzer | null>(null);
 
+  // Helper function to check if token is expired
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp) {
+        // exp is in seconds, Date.now() is in milliseconds
+        return payload.exp * 1000 < Date.now();
+      }
+      return false; // No expiration claim, assume valid
+    } catch (error) {
+      return true; // Can't decode, assume expired
+    }
+  };
+
   // Token aus localStorage laden beim Start
   useEffect(() => {
     const savedToken = localStorage.getItem(TOKEN_KEY);
     if (savedToken) {
+      // Check if token is expired
+      if (isTokenExpired(savedToken)) {
+        console.warn("⚠️ Saved token is expired, clearing it");
+        localStorage.removeItem(TOKEN_KEY);
+        setToken(null);
+        return;
+      }
+      
       setToken(savedToken);
       // Benutzer-Info aus Token extrahieren (decode JWT)
       try {
         const payload = JSON.parse(atob(savedToken.split(".")[1]));
         setBenutzer({ id: payload.id.toString(), email: payload.email });
       } catch (error) {
+        console.error("❌ Error decoding token:", error);
         // Token ungültig, löschen
         localStorage.removeItem(TOKEN_KEY);
         setToken(null);

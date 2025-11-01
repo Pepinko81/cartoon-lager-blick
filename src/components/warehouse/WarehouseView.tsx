@@ -78,10 +78,32 @@ export const WarehouseView = () => {
   const { getAuthHeader, benutzer, logout, token, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  // Helper to check if token is expired
+  const isTokenExpired = (tokenStr: string | null): boolean => {
+    if (!tokenStr) return true;
+    try {
+      const payload = JSON.parse(atob(tokenStr.split(".")[1]));
+      if (payload.exp) {
+        return payload.exp * 1000 < Date.now();
+      }
+      return false;
+    } catch {
+      return true;
+    }
+  };
+
   // Fetch racks - only when authenticated and token is available
   const { data: racks = [], isLoading, refetch } = useQuery<RackType[]>({
     queryKey: ["racks", token], // Include token in query key to refetch when token changes
     queryFn: async () => {
+      // Check if token is expired before making request
+      if (isTokenExpired(token)) {
+        console.error("❌ Token is expired, logging out");
+        logout();
+        navigate("/login");
+        throw new Error("Token ist abgelaufen - Bitte erneut anmelden");
+      }
+
       const authHeaders = getAuthHeader();
       if (!authHeaders.Authorization) {
         console.error("❌ No authentication token available for racks fetch");
@@ -101,7 +123,8 @@ export const WarehouseView = () => {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          console.error("❌ Authentication failed, logging out");
+          console.error("❌ Authentication failed (401/403), clearing token and logging out");
+          // Clear potentially expired token
           logout();
           navigate("/login");
           throw new Error("Nicht autorisiert - Bitte erneut anmelden");
@@ -112,7 +135,7 @@ export const WarehouseView = () => {
       }
       return response.json();
     },
-    enabled: !!token && isAuthenticated, // Only fetch when we have a token and are authenticated
+    enabled: !!token && isAuthenticated && !isTokenExpired(token), // Only fetch when token exists, is valid, and not expired
     retry: false,
   });
 
