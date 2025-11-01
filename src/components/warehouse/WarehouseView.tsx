@@ -84,20 +84,31 @@ export const WarehouseView = () => {
     queryFn: async () => {
       const authHeaders = getAuthHeader();
       if (!authHeaders.Authorization) {
+        console.error("❌ No authentication token available for racks fetch");
         throw new Error("No authentication token available");
       }
+      
+      console.log("🔍 Fetching racks with token:", authHeaders.Authorization.substring(0, 50) + "...");
       
       const response = await fetch(`${API_BASE}/regale`, {
         headers: {
           ...authHeaders,
+          "Content-Type": "application/json",
         },
       });
+      
+      console.log("📡 Response status:", response.status, response.statusText);
+      
       if (!response.ok) {
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
+          console.error("❌ Authentication failed, logging out");
           logout();
           navigate("/login");
+          throw new Error("Nicht autorisiert - Bitte erneut anmelden");
         }
-        throw new Error("Fehler beim Laden der Regale");
+        const errorText = await response.text();
+        console.error("❌ Error response:", errorText);
+        throw new Error(`Fehler beim Laden der Regale: ${response.status} ${response.statusText}`);
       }
       return response.json();
     },
