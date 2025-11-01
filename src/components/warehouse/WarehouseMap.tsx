@@ -8,7 +8,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { toast } from "@/hooks/use-toast";
 import { getFloorPlan, uploadFloorPlan, deleteFloorPlan } from "@/api/warehouse";
 import { updateRackPosition } from "@/api/warehouse";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 
 interface WarehouseMapProps {
@@ -39,7 +39,10 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
   const queryClient = useQueryClient();
 
   // Initialize rack positions and rotations from racks data
+  // Only update if racks have changed and we have valid data
   useEffect(() => {
+    if (!racks || racks.length === 0) return;
+    
     const positions: Record<string, { x: number; y: number }> = {};
     const rotations: Record<string, number> = {};
     racks.forEach((rack) => {
@@ -47,37 +50,52 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         x: rack.position_x ?? 100,
         y: rack.position_y ?? 100,
       };
+      // Use rotation from rack data (0 if not set)
       rotations[rack.id] = rack.rotation ?? 0;
     });
-    setRackPositions(positions);
-    setRackRotations(rotations);
+    
+    // Only update if there are actual changes to avoid unnecessary re-renders
+    setRackPositions(prev => {
+      const hasChanges = Object.keys(positions).some(id => 
+        prev[id]?.x !== positions[id].x || prev[id]?.y !== positions[id].y
+      );
+      return hasChanges ? positions : prev;
+    });
+    
+    setRackRotations(prev => {
+      const hasChanges = Object.keys(rotations).some(id => 
+        prev[id] !== rotations[id]
+      );
+      return hasChanges ? rotations : prev;
+    });
   }, [racks]);
 
-  // Fetch floor plan on mount
+  // Fetch floor plan using React Query for automatic refetch
+  const { data: floorPlanData, refetch: refetchFloorPlan } = useQuery({
+    queryKey: ["floorPlan"],
+    queryFn: getFloorPlan,
+    retry: false,
+    enabled: true,
+  });
+
+  // Sync floorPlanData to state
   useEffect(() => {
-    getFloorPlan()
-      .then((plan) => {
-        if (plan) {
-          setFloorPlan(plan);
-        }
-      })
-      .catch((error) => {
-        console.error("Fehler beim Laden des Grundrisses:", error);
-      });
-  }, []);
+    if (floorPlanData !== undefined) {
+      setFloorPlan(floorPlanData);
+    }
+  }, [floorPlanData]);
 
   // Upload floor plan mutation
   const uploadMutation = useMutation({
     mutationFn: uploadFloorPlan,
-    onSuccess: (data) => {
-      setFloorPlan(data);
+    onSuccess: async (data) => {
       setShowUpload(false);
+      // Refetch floor plan query to get the new floor plan
+      await refetchFloorPlan();
       toast({
         title: "Erfolgreich",
         description: "Grundriss wurde hochgeladen",
       });
-      // Invalidate floor plan query
-      queryClient.invalidateQueries({ queryKey: ["floorPlan"] });
     },
     onError: (error: Error) => {
       toast({
@@ -91,13 +109,13 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
   // Delete floor plan mutation
   const deleteFloorPlanMutation = useMutation({
     mutationFn: deleteFloorPlan,
-    onSuccess: () => {
-      setFloorPlan(null);
+    onSuccess: async () => {
+      // Refetch floor plan query - should return null now
+      await refetchFloorPlan();
       toast({
         title: "Erfolgreich",
         description: "Grundriss wurde gelöscht",
       });
-      queryClient.invalidateQueries({ queryKey: ["floorPlan"] });
     },
     onError: (error: Error) => {
       toast({
@@ -112,8 +130,9 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
   const updatePositionMutation = useMutation({
     mutationFn: ({ rackId, x, y }: { rackId: string; x: number; y: number }) =>
       updateRackPosition(rackId, x, y),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["racks"] });
+    onSuccess: async () => {
+      // Invalidate racks query to ensure data is fresh
+      await queryClient.invalidateQueries({ queryKey: ["racks"] });
     },
     onError: (error: Error) => {
       console.error("Fehler beim Aktualisieren der Position:", error);
@@ -248,8 +267,11 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
       const position = rackPositions[rackId] || { x: 100, y: 100 };
       return updateRackPosition(rackId, position.x, position.y, rotation);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["racks"] });
+    onSuccess: async () => {
+      // Invalidate and refetch racks to get updated rotation
+      await queryClient.invalidateQueries({ queryKey: ["racks"] });
+      // Wait a bit for the query to refetch
+      await new Promise(resolve => setTimeout(resolve, 100));
     },
     onError: (error: Error) => {
       console.error("Fehler beim Aktualisieren der Rotation:", error);
