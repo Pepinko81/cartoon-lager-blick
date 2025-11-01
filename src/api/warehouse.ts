@@ -6,7 +6,7 @@ interface AuthHeader {
 }
 
 const getAuthHeader = (): AuthHeader => {
-  const token = localStorage.getItem("authToken");
+  const token = localStorage.getItem("lager_token");
   return {
     Authorization: token ? `Bearer ${token}` : "",
   };
