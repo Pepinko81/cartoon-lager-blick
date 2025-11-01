@@ -2,7 +2,7 @@ import { API_BASE } from "@/config/api";
 import { FloorPlan, LogoConfig } from "@/types/warehouse";
 
 interface AuthHeader {
-  Authorization: string;
+  Authorization?: string;
 }
 
 const getAuthHeader = (): AuthHeader => {
