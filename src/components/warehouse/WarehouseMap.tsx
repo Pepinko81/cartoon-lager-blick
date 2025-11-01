@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, ZoomIn, ZoomOut, Grid, RotateCcw, Plus, Pencil, Save, Trash2 } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Grid, RotateCcw, Plus, Pencil, Save, Trash2, X } from "lucide-react";
 import { Rack } from "@/types/warehouse";
 import { FloorPlan } from "@/types/warehouse";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { toast } from "@/hooks/use-toast";
-import { getFloorPlan, uploadFloorPlan } from "@/api/warehouse";
+import { getFloorPlan, uploadFloorPlan, deleteFloorPlan } from "@/api/warehouse";
 import { updateRackPosition } from "@/api/warehouse";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
@@ -76,11 +76,33 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         title: "Erfolgreich",
         description: "Grundriss wurde hochgeladen",
       });
+      // Invalidate floor plan query
+      queryClient.invalidateQueries({ queryKey: ["floorPlan"] });
     },
     onError: (error: Error) => {
       toast({
         title: "Fehler",
         description: error.message || "Fehler beim Hochladen des Grundrisses",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete floor plan mutation
+  const deleteFloorPlanMutation = useMutation({
+    mutationFn: deleteFloorPlan,
+    onSuccess: () => {
+      setFloorPlan(null);
+      toast({
+        title: "Erfolgreich",
+        description: "Grundriss wurde gelöscht",
+      });
+      queryClient.invalidateQueries({ queryKey: ["floorPlan"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Fehler",
+        description: error.message || "Fehler beim Löschen des Grundrisses",
         variant: "destructive",
       });
     },
@@ -408,15 +430,33 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
     <div className="w-full h-full relative">
       {/* Controls Toolbar */}
       <div className="absolute top-4 right-4 z-20 flex gap-2 flex-wrap">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowUpload(!showUpload)}
-          className="bg-card/90 backdrop-blur-sm"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Grundriss hochladen
-        </Button>
+        {floorPlan ? (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm("Möchten Sie den Grundriss wirklich löschen?")) {
+                deleteFloorPlanMutation.mutate(floorPlan.id);
+              }
+            }}
+            className="bg-card/90 backdrop-blur-sm"
+            disabled={deleteFloorPlanMutation.isPending}
+          >
+            <X className="w-4 h-4 mr-2" />
+            {deleteFloorPlanMutation.isPending ? "Löschen..." : "Grundriss löschen"}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowUpload(!showUpload)}
+            className="bg-card/90 backdrop-blur-sm"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Grundriss hochladen
+          </Button>
+        )}
         <Button
           variant={showDrawing ? "default" : "outline"}
           size="sm"
@@ -546,7 +586,7 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         {/* Floor Plan Background */}
         {floorPlan ? (
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 relative group"
             style={{
               backgroundImage: `url(${floorPlan.image_path})`,
               backgroundSize: "contain",
@@ -557,7 +597,25 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
               width: "100%",
               height: "100%",
             }}
-          />
+          >
+            {/* Delete Floor Plan Button */}
+            <Button
+              variant="destructive"
+              size="sm"
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-30 bg-destructive/90 hover:bg-destructive"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (confirm("Möchten Sie den Grundriss wirklich löschen?")) {
+                  deleteFloorPlanMutation.mutate(floorPlan.id);
+                }
+              }}
+              disabled={deleteFloorPlanMutation.isPending}
+            >
+              <X className="w-4 h-4 mr-2" />
+              {deleteFloorPlanMutation.isPending ? "Wird gelöscht..." : "Grundriss löschen"}
+            </Button>
+          </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
             <div className="text-center">
@@ -601,7 +659,7 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
             const isDraggingThis = dragging === rack.id;
 
             return (
-              <motion.div
+              <div
                 key={rack.id}
                 className={`absolute cursor-move select-none ${
                   isDraggingThis ? "z-50" : "z-10"
@@ -615,6 +673,7 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                 onMouseDown={(e) => {
                   // Don't start drag if clicking on rotation handle
                   if ((e.target as HTMLElement).closest('.rotation-handle')) {
+                    e.stopPropagation();
                     return;
                   }
                   handleRackMouseDown(e, rack.id);
@@ -622,6 +681,7 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                 onDoubleClick={(e) => {
                   // Don't rotate if clicking on rotation handle (it has its own onClick)
                   if ((e.target as HTMLElement).closest('.rotation-handle')) {
+                    e.stopPropagation();
                     return;
                   }
                   e.stopPropagation();
@@ -632,6 +692,7 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                 onClick={(e) => {
                   // Don't trigger rack click if clicking on rotation handle
                   if ((e.target as HTMLElement).closest('.rotation-handle')) {
+                    e.stopPropagation();
                     return;
                   }
                   e.stopPropagation();
@@ -639,14 +700,13 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                     onRackClick(rack.id);
                   }
                 }}
-                whileHover={!isDraggingThis ? { scale: 1.1 } : {}}
-                whileTap={{ scale: 0.95 }}
               >
-                <div className={`bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-lg border-2 border-background min-w-[120px] text-center relative ${
+                <div className={`bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-lg border-2 border-background min-w-[120px] text-center relative transition-transform hover:scale-110 ${
                   isDraggingThis ? "opacity-80" : ""
                 }`}>
-                  <div 
-                    className="rotation-handle absolute -top-1 -right-1 w-5 h-5 bg-secondary hover:bg-secondary/80 rounded-full border-2 border-background cursor-pointer z-50 flex items-center justify-center transition-colors"
+                  <button
+                    type="button"
+                    className="rotation-handle absolute -top-2 -right-2 w-6 h-6 bg-secondary hover:bg-secondary/80 active:bg-secondary/70 rounded-full border-2 border-background cursor-pointer z-[100] flex items-center justify-center transition-all shadow-md hover:shadow-lg hover:scale-110"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -661,16 +721,16 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                       e.preventDefault();
                       e.stopPropagation();
                     }}
-                    title="Klicken zum Drehen"
+                    title="Klicken zum Drehen (45°)"
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-background">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-background">
                       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.7 2.7L21 12" />
                     </svg>
-                  </div>
+                  </button>
                   <p className="font-semibold text-sm">{rack.name}</p>
                   <p className="text-xs opacity-80">{rack.etagen.length} Etagen</p>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
