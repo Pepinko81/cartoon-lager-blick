@@ -236,17 +236,20 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
 
   // Handle rack rotation - rotate by 45 degrees each time
   const handleRackRotate = useCallback((rackId: string) => {
+    console.log("🔄 handleRackRotate called for:", rackId);
     setRackRotations((prev) => {
-      const currentRotation = prev[rackId] || 0;
+      const currentRotation = prev[rackId] ?? racks.find(r => r.id === rackId)?.rotation ?? 0;
       const newRotation = (currentRotation + 45) % 360;
       const updated = { ...prev, [rackId]: newRotation };
+      
+      console.log("🔄 New rotation:", newRotation, "for rack:", rackId);
       
       // Save rotation to backend
       updateRotationMutation.mutate({ rackId, rotation: newRotation });
       
       return updated;
     });
-  }, [updateRotationMutation]);
+  }, [updateRotationMutation, racks]);
 
   // Drawing handlers
   const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
@@ -609,14 +612,28 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                   transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
                   transformOrigin: "center center",
                 }}
-                onMouseDown={(e) => handleRackMouseDown(e, rack.id)}
+                onMouseDown={(e) => {
+                  // Don't start drag if clicking on rotation handle
+                  if ((e.target as HTMLElement).closest('.rotation-handle')) {
+                    return;
+                  }
+                  handleRackMouseDown(e, rack.id);
+                }}
                 onDoubleClick={(e) => {
+                  // Don't rotate if clicking on rotation handle (it has its own onClick)
+                  if ((e.target as HTMLElement).closest('.rotation-handle')) {
+                    return;
+                  }
                   e.stopPropagation();
                   if (!isDraggingThis) {
                     handleRackRotate(rack.id);
                   }
                 }}
                 onClick={(e) => {
+                  // Don't trigger rack click if clicking on rotation handle
+                  if ((e.target as HTMLElement).closest('.rotation-handle')) {
+                    return;
+                  }
                   e.stopPropagation();
                   if (onRackClick && !isDraggingThis) {
                     onRackClick(rack.id);
@@ -628,13 +645,28 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
                 <div className={`bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-lg border-2 border-background min-w-[120px] text-center relative ${
                   isDraggingThis ? "opacity-80" : ""
                 }`}>
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full border-2 border-background cursor-pointer"
+                  <div 
+                    className="rotation-handle absolute -top-1 -right-1 w-5 h-5 bg-secondary hover:bg-secondary/80 rounded-full border-2 border-background cursor-pointer z-50 flex items-center justify-center transition-colors"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
+                      console.log("🔄 Rotation handle clicked for rack:", rack.id);
                       handleRackRotate(rack.id);
                     }}
-                    title="Zum Drehen doppelklicken oder auf den Punkt klicken"
-                  />
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onMouseUp={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    title="Klicken zum Drehen"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-background">
+                      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.7 2.7L21 12" />
+                    </svg>
+                  </div>
                   <p className="font-semibold text-sm">{rack.name}</p>
                   <p className="text-xs opacity-80">{rack.etagen.length} Etagen</p>
                 </div>
