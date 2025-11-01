@@ -220,6 +220,20 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
     [dragging, rackPositions, updatePositionMutation]
   );
 
+  // Update rotation mutation - defined first
+  const updateRotationMutation = useMutation({
+    mutationFn: ({ rackId, rotation }: { rackId: string; rotation: number }) => {
+      const position = rackPositions[rackId] || { x: 100, y: 100 };
+      return updateRackPosition(rackId, position.x, position.y, rotation);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["racks"] });
+    },
+    onError: (error: Error) => {
+      console.error("Fehler beim Aktualisieren der Rotation:", error);
+    },
+  });
+
   // Handle rack rotation - rotate by 45 degrees each time
   const handleRackRotate = useCallback((rackId: string) => {
     setRackRotations((prev) => {
@@ -232,24 +246,12 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
       
       return updated;
     });
-  }, []);
-
-  // Update rotation mutation
-  const updateRotationMutation = useMutation({
-    mutationFn: ({ rackId, rotation }: { rackId: string; rotation: number }) =>
-      updateRackPosition(rackId, rackPositions[rackId]?.x ?? 100, rackPositions[rackId]?.y ?? 100, rotation),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["racks"] });
-    },
-    onError: (error: Error) => {
-      console.error("Fehler beim Aktualisieren der Rotation:", error);
-    },
-  });
+  }, [updateRotationMutation]);
 
   // Drawing handlers
   const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
   
-  const handleDrawingStart = (e: React.MouseEvent) => {
+  const handleDrawingStart = useCallback((e: React.MouseEvent) => {
     if (!mapContainerRef.current || !showDrawing) return;
     
     const rect = mapContainerRef.current.getBoundingClientRect();
@@ -293,9 +295,9 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         canvasContext.moveTo(x, y);
       }
     }
-  };
+  }, [showDrawing, drawingColor, drawingLineWidth, drawingMode, canvasContext]);
 
-  const handleDrawingMove = (e: React.MouseEvent) => {
+  const handleDrawingMove = useCallback((e: React.MouseEvent) => {
     if (!isDrawing || !canvasContext || !mapContainerRef.current) return;
     
     const rect = mapContainerRef.current.getBoundingClientRect();
@@ -313,9 +315,9 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
       canvasContext.stroke();
       canvasContext.globalCompositeOperation = "source-over";
     }
-  };
+  }, [isDrawing, canvasContext, drawingMode, drawingColor]);
 
-  const handleDrawingEnd = (e: React.MouseEvent) => {
+  const handleDrawingEnd = useCallback((e: React.MouseEvent) => {
     if (!isDrawing || !canvasContext || !drawingStart || !mapContainerRef.current) return;
     
     const rect = mapContainerRef.current.getBoundingClientRect();
@@ -340,10 +342,10 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
     
     setIsDrawing(false);
     setDrawingStart(null);
-  };
+  }, [isDrawing, canvasContext, drawingStart, drawingMode, drawingColor]);
 
   // Export drawn map as image and upload
-  const handleSaveDrawing = async () => {
+  const handleSaveDrawing = useCallback(async () => {
     if (!canvasRef.current) return;
     
     canvasRef.current.toBlob(async (blob) => {
@@ -370,14 +372,23 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         });
       }
     }, "image/png");
-  };
+  }, [uploadMutation]);
 
   // Clear drawing
-  const handleClearDrawing = () => {
+  const handleClearDrawing = useCallback(() => {
     if (canvasContext && canvasRef.current) {
       canvasContext.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
-  };
+  }, [canvasContext]);
+
+  // Cleanup canvas when drawing mode is disabled
+  useEffect(() => {
+    if (!showDrawing && canvasRef.current) {
+      canvasRef.current.remove();
+      canvasRef.current = null;
+      setCanvasContext(null);
+    }
+  }, [showDrawing]);
 
   useEffect(() => {
     if (dragging) {
@@ -489,30 +500,38 @@ export const WarehouseMap = ({ racks, onRackClick }: WarehouseMapProps) => {
         ref={mapContainerRef}
         className="w-full h-[600px] bg-muted rounded-lg overflow-hidden relative border border-border"
         onMouseDown={(e) => {
-          if (showDrawing && !isPanning) {
+          if (showDrawing && !isPanning && !dragging) {
+            e.preventDefault();
+            e.stopPropagation();
             handleDrawingStart(e);
-          } else {
+          } else if (!showDrawing) {
             handleMouseDown(e);
           }
         }}
         onMouseMove={(e) => {
-          if (showDrawing && isDrawing) {
+          if (showDrawing && isDrawing && !dragging) {
+            e.preventDefault();
+            e.stopPropagation();
             handleDrawingMove(e);
-          } else {
+          } else if (!showDrawing) {
             handleMouseMove(e);
           }
         }}
         onMouseUp={(e) => {
           if (showDrawing && isDrawing) {
+            e.preventDefault();
+            e.stopPropagation();
             handleDrawingEnd(e);
-          } else {
+          } else if (!showDrawing) {
             handleMouseUp();
           }
         }}
         onMouseLeave={(e) => {
           if (showDrawing && isDrawing) {
+            e.preventDefault();
+            e.stopPropagation();
             handleDrawingEnd(e);
-          } else {
+          } else if (!showDrawing) {
             handleMouseUp();
           }
         }}
