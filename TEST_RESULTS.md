@@ -119,10 +119,11 @@
 - [x] Cancel button visible
 - [x] Close button (X) in header works
 
-### Console Errors/Warnings
-- ⚠️ API 401 Unauthorized errors observed - Token may not be persisting correctly in some API calls
+### Console Errors/Warnings (After Fix)
+- ✅ No more 401 Unauthorized errors after token key fix
 - ⚠️ WebGL Context Lost warnings (normal during view switching)
 - ⚠️ Font-related debug messages (non-critical)
+- ⚠️ 404 errors for missing floor plan/logo (expected when no files uploaded)
 
 ## Remaining Tests Needed (Requires Manual File Upload)
 
@@ -135,10 +136,11 @@
 
 ## Summary
 
-### Issues Found and Fixed: 3
+### Issues Found and Fixed: 4
 1. ✅ Hardcoded URLs in backend routes - Fixed with dynamic URL generation
 2. ✅ URL format handling in API - Fixed with normalization logic
 3. ✅ Null reference potential in Rack3D - Fixed with proper null checks
+4. ✅ Token key mismatch - Fixed localStorage key from "authToken" to "lager_token"
 
 ### Code Quality
 - ✅ No linter errors
